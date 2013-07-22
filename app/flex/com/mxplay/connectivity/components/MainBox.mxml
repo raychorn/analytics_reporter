@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:pom="com.mxplay.analytics.components.*"
+	xmlns:local="com.mxplay.analytics.util.*"
+	backgroundColor="#eeeeee"
+	paddingLeft="40"
+	paddingRight="40"
+	paddingTop="0"
+	paddingBottom="10"
+	width="100%"
+	height="100%"
+    creationComplete="onMainComplete()">
+<mx:Script>
+	<![CDATA[
+		import mx.containers.ControlBar;
+        import mx.containers.Panel;
+        import mx.containers.VBox;
+        import mx.controls.Button;
+        import mx.controls.Label;
+        import mx.controls.Spacer;
+        import mx.controls.TextInput;
+        import mx.managers.PopUpManager;
+        
+        //Custom Events
+        import com.mxplay.analytics.events.DateChangeEvent;
+        
+        //dashboard mx
+        import mx.containers.Canvas;
+		import mx.controls.Alert;
+		import mx.events.FlexEvent;
+		import mx.events.IndexChangedEvent;
+		import mx.events.ItemClickEvent;
+		import mx.rpc.events.FaultEvent;
+		import mx.rpc.events.ResultEvent;
+		import mx.rpc.http.HTTPService;
+		
+		//dashboard custom
+		import com.mxplay.analytics.dashboard.events.LayoutChangeEvent;
+		import com.mxplay.analytics.dashboard.managers.PodLayoutManager;
+		import com.mxplay.analytics.dashboard.managers.StateManager;
+		import com.mxplay.analytics.dashboard.view.ChartContent;
+		import com.mxplay.analytics.dashboard.view.FormContent;
+		import com.mxplay.analytics.dashboard.view.GridContent;
+		import com.mxplay.analytics.dashboard.view.CheckedBoxChartContent;
+		import com.mxplay.analytics.dashboard.view.StackedBarContent;
+		import com.mxplay.analytics.dashboard.view.ListContent;
+		import com.mxplay.analytics.dashboard.view.PieChartContent;
+		import com.mxplay.analytics.dashboard.view.PieChart2Content;
+		import com.mxplay.analytics.dashboard.view.Pod;
+		import com.mxplay.analytics.dashboard.view.PodContentBase;
+		import com.mxplay.analytics.dashboard.view.YahooMapContent;
+		
+		[Bindable]
+		public var user : XML;
+		
+		// Date Range Variables
+		public static const millisecondsPerDay:int = 1000 * 60 * 60 * 24;
+		private var startDate:Date = Settings.dateSel;
+		private var endDate:Date = new Date(startDate.getTime() - (7 * millisecondsPerDay));
+		
+		// Array of PodLayoutManagers
+		private var podLayoutManagersArray:Array = new Array();
+		
+		// Stores the xml data keyed off of a PodLayoutManager.
+		private var podDataDictionary:Dictionary = new Dictionary();
+		
+		// Stores PodLayoutManagers keyed off of a Pod.
+		// Used for podLayoutManager calls after pods have been created for the first time.
+		// Also, used for look-ups when saving pod content ViewStack changes.
+		private var podHash:Object = new Object();
+		
+		private function onMainComplete():void
+		{
+			// Load pods.xml, which contains the pod layout.
+			var httpService:HTTPService = new HTTPService();
+			httpService.url = "com/mxplay/connectivity/components/pods.xml";
+			httpService.resultFormat = "e4x";
+			httpService.addEventListener(FaultEvent.FAULT, onFaultHttpService);
+			httpService.addEventListener(ResultEvent.RESULT, onResultHttpService);
+			httpService.send();
+		}
+		
+		private function onFaultHttpService(e:FaultEvent):void
+		{
+			Alert.show("Unable to load pods.xml.");
+		}
+		
+		private function onResultHttpService(e:ResultEvent):void
+		{
+			var viewXMLList:XMLList = e.result.view;
+			var len:Number = viewXMLList.length();
+			var canvasArray:Array = new Array();
+			var managerArray:Array = new Array();
+			var containerWindowManagerHash:Object = new Object();
+			for (var i:Number = 0; i < len; i++) // Loop through the view nodes.
+			{
+				// Create a canvas for each view node.
+				var canvas:Canvas = new Canvas();
+				var hbox:HBox = new HBox();
+				hbox.percentHeight = 100;
+				hbox.percentWidth = 100;
+				canvas.addChild(hbox);
+				var podLayoutManagers:Array = new Array();
+				var widths:Array = viewXMLList[i].@percentWidth.toString().split(",");
+				var heights:Array = viewXMLList[i].@percentHeight.toString().split(",");
+				var num:Number = viewXMLList[i].@containers;
+				for (var j:Number = 0; j < num; j++)
+				{
+					//Add sub canvases
+					var subCanvas:Canvas = new Canvas();
+					subCanvas.percentHeight = heights[j];
+					subCanvas.percentWidth = widths[j];
+					canvasArray[j] = subCanvas;
+					hbox.addChild(canvasArray[j]);
+					
+					//Add managers to canvases
+					var subManager:PodLayoutManager = new PodLayoutManager();
+					subManager.container = canvasArray[j];
+					subManager.id = viewXMLList[i].@id + "_" + j;
+					subManager.selectedLayout = viewXMLList[i].@layout;
+					managerArray[j] = subManager;
+					managerArray[j].addEventListener(LayoutChangeEvent.UPDATE, StateManager.setPodLayout);
+					
+					/*var results:XMLList = viewXMLList[i].pod.(@defaultContainer == j+1);
+					var item:XML;
+		            for each(item in results) {
+		                Alert.show("item: " + results.toXMLString());
+		            }*/
+					//if (j == 0)
+					//	podDataDictionary[managerArray[j]] = viewXMLList[i].pod;
+					//else if (j == 1)
+					//	podDataDictionary[managerArray[j]] = viewXMLList[i].pod2;
+					podDataDictionary[managerArray[j]] = viewXMLList[i].pod.(@defaultContainer == j+1);
+					podLayoutManagers.push(managerArray[j]);
+				}
+				podLayoutManagersArray.push(podLayoutManagers);
+				// PodLayoutManager handles resize and should prevent the need for
+				// scroll bars so turn them off so they aren't visible during resizes.
+				canvas.horizontalScrollPolicy = "off";
+				canvas.verticalScrollPolicy = "off";
+				canvas.label = viewXMLList[i].@label;
+				canvas.percentWidth = 100;
+				canvas.percentHeight = 100;
+				viewStack.addChild(canvas);
+				
+				// Create a manager for each view.
+				//var manager:PodLayoutManager = new PodLayoutManager();
+				//manager.container = canvasArray[0];
+				//manager.id = viewXMLList[i].@id;
+				//manager.selectedLayout = viewXMLList[i].@layout;
+				//manager.addEventListener(LayoutChangeEvent.UPDATE, StateManager.setPodLayout);
+				// Store the pod xml data. Used when view is first made visible.
+			}
+			
+			var index:Number = StateManager.getViewIndex();
+			// Make sure the index is not out of range.
+			// This can happen if a tab view was saved but then tabs were subsequently removed from the XML.
+			index = Math.min(tabBar.numChildren - 1, index);
+			onItemClickTabBar(new ItemClickEvent(ItemClickEvent.ITEM_CLICK, false, false, null, index));
+			tabBar.selectedIndex = index;
+		}
+		
+		// Event handler function for when Data Range (Month/Day) Changes
+		private function dataRangeHandler(range:Object):void{
+			Settings.dataRange = range.data;
+			//applicationTab.dataRangeHandler(range);
+			//applicationUsageTab.dataRangeHandler(range);
+		}
+		
+		// Event handler function for when Export is selected
+		private function dataExportHandler(export:Object):void{
+			Settings.exportType = export.data;
+			exportPopUp();
+		}
+		
+		// Event handler function for when Generate Report is selected
+		private function reportExportHandler(report:Object):void{
+			Settings.exportType = report.data;
+			exportPopUp();
+		}
+		
+		// Event handler function to write the selected
+        // date to the Label control.        
+        private function displayDate(date:Date):void {
+        	/*if (applicationUsageTab.applicationUsage) {
+            	applicationUsageTab.applicationUsage.dateChangeHandler(date);
+            	applicationUsageTab.devicesOverview.dateChangeHandler(date);
+            	applicationUsageTab.pieBrowser.dateChangeHandler(date);
+            	applicationUsageTab.pieDevice.dateChangeHandler(date);
+         	} 
+         	else if (locationOverviewPanel) {
+         		locationOverviewPanel.dateChangeHandler(date);
+         	}*/
+        }
+        
+        private function updateDate(event:Event):void
+		{
+			//Change Global Displays
+			Settings.displayedMonth = (dateRangeChooser.displayedMonth).toString();
+			Settings.displayedMonthLabel = dateRangeChooser.monthNames[dateRangeChooser.displayedMonth];			
+			if ( dateRangeChooser.selectedRanges && dateRangeChooser.selectedRanges.length > 0 )
+			{
+				var obj:Object = dateRangeChooser.selectedRanges[0];
+				//startDate.text = obj.rangeStart.toDateString();
+				//endDate.text = obj.rangeEnd.toDateString();
+				startDate = obj.rangeStart;
+				endDate = obj.rangeEnd;
+				btnDateRange.enabled = true;
+				
+				//Change Global Date
+				//Settings.dateSel = obj.rangeStart;
+				//dispatchEvent(new DateChangeEvent(obj.rangeStart, obj.rangeEnd));
+				/*
+				if (applicationUsageTab.applicationUsage)
+				{
+	            	applicationUsageTab.applicationUsage.dateChangeHandler(obj.rangeStart);
+	            	applicationUsageTab.devicesOverview.dateChangeHandler(obj.rangeStart);
+	            	applicationUsageTab.pieBrowser.dateChangeHandler(obj.rangeStart);
+            		applicationUsageTab.pieDevice.dateChangeHandler(obj.rangeStart);
+	   			}
+	   			if (locationOverviewPanel) {
+	         		locationOverviewPanel.dateChangeHandler(obj.rangeStart);
+	         	}*/
+			} else {
+				//dispatchEvent(new Event("dateClick", true));// bubble to parent
+				/*if (applicationUsageTab.applicationUsage)
+				{
+	            	applicationUsageTab.applicationUsage.dateChangeHandler(Settings.dateSel);
+	            	applicationUsageTab.devicesOverview.dateChangeHandler(Settings.dateSel);
+	            	applicationUsageTab.pieBrowser.dateChangeHandler(Settings.dateSel);
+	            	applicationUsageTab.pieDevice.dateChangeHandler(Settings.dateSel);
+	   			}
+	   			if (locationOverviewPanel) {
+	         		locationOverviewPanel.dateChangeHandler(Settings.dateSel);
+	         	}*/
+			}
+		}
+        
+        private function exportPopUp():void {
+            //var win:ExportDialog = PopUpManager.createPopUp(this, ExportDialog, true) as ExportDialog;
+            //PopUpManager.centerPopUp(win);
+        }
+        
+        private function onItemClickTabBar(e:ItemClickEvent):void
+		{
+			var index:Number = e.index;
+			StateManager.setViewIndex(index); // Save the view index.
+			
+			viewStack.selectedIndex = index;
+			
+			// If data exists then add the pods. After the pods have been added the data is cleared.
+			var podLayoutManagers:Array = podLayoutManagersArray[index];
+			//Alert.show("index="+ index,"index");
+			//Alert.show("length="+podLayoutManagers.length,"length");
+			for (var j:Number = 0; j < podLayoutManagers.length; j++)
+			{
+				var podLayoutManager:PodLayoutManager = podLayoutManagers[j];
+				if (podDataDictionary[podLayoutManager] != null)
+					addPods(podLayoutManagers[j]);
+			}
+		}
+		
+		// Adds the pods to a view.
+		private function addPods(manager:PodLayoutManager):void
+		{
+			// Loop through the pod nodes for each view node.
+			var podXMLList:XMLList = podDataDictionary[manager];
+			var podLen:Number = podXMLList.length();
+			var unsavedPodCount:Number = 0;
+			for (var j:Number = 0; j < podLen; j++)
+			{
+				// Figure out which type of pod content to use.
+				var podContent:PodContentBase = null;
+				if (podXMLList[j].@type == "chart")
+					podContent = new ChartContent();
+				else if (podXMLList[j].@type == "form")
+					podContent = new FormContent();
+				else if (podXMLList[j].@type == "grid")
+					podContent = new GridContent();
+				else if (podXMLList[j].@type == "checkedBoxChart")
+					podContent = new GridContent();
+				else if (podXMLList[j].@type == "stackedBar")
+					podContent = new StackedBarContent();
+				else if (podXMLList[j].@type == "checkedBoxLineChart")
+					podContent = new CheckedBoxChartContent();
+				else if (podXMLList[j].@type == "list")
+					podContent = new ListContent();
+				else if (podXMLList[j].@type == "pieChart")
+					podContent = new PieChartContent();
+				else if (podXMLList[j].@type == "pieChart2")
+					podContent = new PieChart2Content();
+				else if (podXMLList[j].@type == "yahooMap")
+					podContent = new YahooMapContent();
+				
+				if (podContent != null)
+				{
+					var viewId:String = manager.id;
+					var podId:String = podXMLList[j].@id;
+					
+					// Get the saved value for the pod content viewStack.
+					if (StateManager.getPodViewIndex(viewId, podId) != -1)
+						podXMLList[j].@selectedViewIndex = StateManager.getPodViewIndex(viewId, podId);
+					
+					podContent.properties = podXMLList[j];
+					var pod:Pod = new Pod();
+					pod.id = podId;
+					pod.title = podXMLList[j].@title;
+					pod.addChild(podContent);
+					var index:Number;
+					
+					if (StateManager.isPodMinimized(viewId, podId))
+					{
+						index = StateManager.getMinimizedPodIndex(viewId, podId);
+						manager.addMinimizedItemAt(pod, index);
+					}
+					else if (manager.selectedLayout == "vertical" && podXMLList[j].@defaultView == "true")
+					{
+						
+					}
+					else
+					{
+						index = StateManager.getPodIndex(viewId, podId);
+						
+						// If the index hasn't been saved move the pod to the last position.
+						if (index == -1)
+						{
+							index = podLen + unsavedPodCount;
+							unsavedPodCount += 1;
+						}
+						
+						manager.addItemAt(pod, index, StateManager.isPodMaximized(viewId, podId));
+					}
+					
+					pod.addEventListener(IndexChangedEvent.CHANGE, onChangePodView);
+					
+					podHash[pod] = manager;
+				}
+			}
+			
+			// Delete the saved data.
+			delete podDataDictionary[manager];
+			
+			// Listen for the last pod to complete so the layout from the ContainerWindowManager is done correctly. 
+			pod.addEventListener(FlexEvent.UPDATE_COMPLETE, onCreationCompletePod);
+		}
+		
+		// Pod has been created so update the respective PodLayoutManager.
+		private function onCreationCompletePod(e:FlexEvent):void
+		{
+			e.currentTarget.removeEventListener(FlexEvent.UPDATE_COMPLETE, onCreationCompletePod);
+			var manager:PodLayoutManager = PodLayoutManager(podHash[e.currentTarget]);
+			manager.removeNullItems();
+			manager.updateLayout(false);
+		}
+		
+		// Saves the pod content ViewStack state.
+		private function onChangePodView(e:IndexChangedEvent):void
+		{
+			var pod:Pod = Pod(e.currentTarget);
+			var viewId:String = PodLayoutManager(podHash[pod]).id;
+			StateManager.setPodViewIndex(viewId, pod.id, e.newIndex);
+		}
+		
+		public function linkHandler(event:TextEvent):void {
+            // Open the link in a new browser window.
+            navigateToURL(new URLRequest(event.text), '_blank')
+        }
+
+	]]>
+</mx:Script>
+
+	<mx:Model id="ranges">
+	  <ranges>
+	    <range label="Month" data="monthly"/>
+	    <range label="Day" data="daily"/>
+	  </ranges>
+	</mx:Model>
+	
+	<mx:Model id="exports">
+	  <exports>
+	    <export label="Excel Format" data="xls"/>
+	    <export label="CSV Format" data="csv"/>
+	  </exports>
+	</mx:Model>
+	
+	<mx:Model id="reports">
+	  <reports>
+	    <report label="PDF Document" data="pdf"/>
+	  </reports>
+	</mx:Model>
+
+	<mx:VBox width="100%" height="100%" verticalGap="0">
+	<mx:VBox styleName="topNav" width="100%" height="55" horizontalAlign="center" verticalAlign="middle">
+		<!-- <mx:Image source="com/mxplay/analytics/assets/idSMSI_rgb_onblue.png" /> -->
+	</mx:VBox>
+	<mx:VBox styleName="tabNav" width="100%" height="45" />
+	
+	<mx:HBox width="100%" height="15" paddingLeft="5" paddingRight="5">
+		<mx:Label width="200" text="{'Logged in as: ' + user.login + ' (' + user.email + ')'}" />
+		<mx:Label text="{' Welcome back ' + user.first_name + '!'}" />
+	</mx:HBox>
+	
+	<mx:HBox width="100%" height="100%" paddingLeft="5" paddingRight="5" paddingBottom="20">
+		<mx:VBox width="200" height="100%">
+			<!-- <mx:Image source="com/mxplay/analytics/assets/smsi_logo.gif" horizontalAlign="center" width="200" /> -->
+			<!-- <mx:Spacer height="20" /> -->
+			<mx:Accordion width="200" height="200" backgroundAlpha=".4">
+				<mx:VBox width="100%" height="100%" label="Choose Data Range" backgroundAlpha=".4">
+					<mx:List id="dataRange" width="100%" backgroundAlpha=".4" color="0x0050AA" dataProvider="{ranges.range}" height="100%"
+		            	change="dataRangeHandler(List(event.target).selectedItem);" />
+				</mx:VBox>
+				<pom:PropertyBox id="propertyBox" />
+				<mx:VBox width="100%" height="100%" label="Export Data">
+					<mx:List id="dataExport" width="100%" backgroundAlpha=".4" color="0x0050AA" dataProvider="{exports.export}" height="100%"
+		            	itemClick="dataExportHandler(List(event.target).selectedItem);" />
+				</mx:VBox>
+				<mx:VBox width="100%" height="100%" label="Generate Report">
+					<mx:List id="reportExport" width="100%" backgroundAlpha=".4" color="0x0050AA" dataProvider="{reports.report}" height="100%"
+		            	itemClick="reportExportHandler(List(event.target).selectedItem);" />
+				</mx:VBox>
+			</mx:Accordion>
+			<!--<mx:DateChooser id="dateChooser" width="200" change="displayDate(DateChooser(event.target).selectedDate)"
+				 creationComplete="displayDate(DateChooser(event.target).selectedDate)" />-->
+			<local:DatePeriodChooser id="dateRangeChooser" backgroundAlpha=".4" width="200" scroll="" change="updateDate(event)" />
+			<mx:Button id="btnDateRange" enabled="false" label="Select Date Range" click="dispatchEvent(new DateChangeEvent(startDate, endDate))" />
+			<mx:Text width="200" htmlText="Hold down the mouse button on a date and move the mouse to select a range. You can also Hold SHIFT and Click to select multiple dates." />
+		</mx:VBox>
+		 <!--<mx:TabNavigator width="100%" height="100%" styleName="glassPods">
+		 	<pom:ApplicationBox id="applicationTab" width="100%" hideEffect="{hideEffect}" showEffect="{showEffect}" />
+		 	<pom:ApplicationUsageBox width="100%" id="applicationUsageTab" hideEffect="{hideEffect}" showEffect="{showEffect}" creationComplete="displayDate(dateRangeChooser.selectedDate)" />
+		 	<pom:LocationOverviewPanel id="locationOverviewPanel" hideEffect="{hideEffect}" showEffect="{showEffect}" creationComplete="displayDate(dateRangeChooser.selectedDate)" />
+		 	
+		 </mx:TabNavigator>-->
+		 <mx:VBox width="100%" height="100%" verticalGap="0">
+			 <mx:TabBar
+				id="tabBar"
+				itemClick="onItemClickTabBar(event)"
+				height="35" 
+				dataProvider="viewStack" />
+			<mx:ViewStack
+				id="viewStack"
+				paddingTop="15"
+				width="100%" height="100%" />
+		</mx:VBox>
+	</mx:HBox>
+	
+	<mx:Label selectable="true" link="linkHandler(event);">
+        <mx:htmlText>
+            <![CDATA[<p>Copyright 2010 -- </p><a href='event:http://www.smithmicro.com'>SmithMicro.com.</a>]]>
+        </mx:htmlText>
+    </mx:Label> 
+	</mx:VBox>
+
+</mx:Canvas>

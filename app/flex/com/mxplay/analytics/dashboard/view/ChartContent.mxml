@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Displays a ColumnChart and LineChart using a ViewStack.
+ The ColumnChart and LineChart allow a user to drill-down
+ one level. For the demo, random data is generated.
+ The ColumnChart and LineChart use the same dataProvider.
+-->
+<PodContentBase
+	xmlns="com.mxplay.analytics.dashboard.view.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:effects="qs.charts.effects.*"
+	xmlns:renderers="qs.charts.renderers.*"
+	xmlns:sp="com.mxplay.analytics.dashboard.view.*"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:fx="http://ns.adobe.com/mxml/2009"
+    xmlns:ranges="com.mxplay.analytics.util.*"
+	width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import com.mxplay.analytics.dashboard.events.DataChangeEvent;
+			import mx.controls.Text;
+			import mx.controls.Label;
+			import mx.controls.Button;
+			import mx.formatters.NumberFormatter;
+			import mx.charts.chartClasses.ChartBase;
+			import mx.charts.chartClasses.Series;
+			import mx.charts.events.ChartItemEvent;
+			import mx.charts.HitData;
+			import mx.charts.series.ColumnSeries;
+			import mx.charts.events.LegendMouseEvent;
+			import mx.collections.ArrayCollection;
+			import mx.controls.ComboBox;
+			import mx.events.ListEvent;
+			import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			import qs.charts.renderers.RollOverBoxItemRenderer;
+			
+			import com.mxplay.analytics.events.DateChangeEvent;
+			import com.mxplay.analytics.dashboard.events.DataChangeEvent;
+			
+			// The original data provider used for drillUp.
+			private var initialDataProvider:ArrayCollection;
+			[Bindable]
+			private var dataProvider:ArrayCollection;
+			[Bindable]
+			private var _selectedViewIndex:Number = 0;
+			
+			[Bindable] var selection:String;
+			[Bindable] var year:String;
+			[Bindable] var month:String;
+			[Bindable] var day:String;
+			
+			private var numberFormatter:NumberFormatter;
+			
+			// Chart drill down variables. Users can only drill down
+			// one level then click the chart to drill up.
+			// Note, the majority of the drill down code including all of the classes in the "qs" package
+			// are from Ely Greenfield's blog, http://www.quietlyscheming.com/blog/charts/chart-drilldown-animations/.
+			private var chart:ChartBase;
+			private var series:Series;
+			private var drillToIndex:Number;
+			
+			// For the VVM reports
+			private var comboBox_from:ComboBox;
+			private var comboBox_to:ComboBox;
+			private var swapButton:Button;
+			private var label_from:Label;
+			private var label_to:Label;
+			// For Multiple lines at the LineChart
+			[Bindable] public var selectedItem:Object;
+			// for different line color
+			private var leftStart = 0;
+            private var rightStart = 0;
+			private var colorNum:int = 0;
+			private var colorArray:Array =  new Array("0xFF0000", "0x0000FF", "0x00FF00", "0xFF00FF", "0xFF0000");
+			// ifong
+			[Bindable] private var hsListSource:Array = new Array("LX-265_HERO200-ANDROID");
+			
+				
+			override protected function onResultHttpService(e:ResultEvent):void
+			{
+				//DateChange Event Listener 
+				mx.core.Application.application.addEventListener(DateChangeEvent.DATECHANGE, dateChangeHandler);
+				//DataChange Event Listener
+				this.addEventListener(DataChangeEvent.ADD, dataChangeEventHandler);
+				
+				//Used later for put Commas on Numbers
+				numberFormatter = new NumberFormatter(); 
+				numberFormatter.precision = "0";
+				numberFormatter.thousandsSeparatorTo = ",";
+				numberFormatter.useThousandsSeparator = "true";
+				
+				var a:Array = xmlListToObjectArray(e.result.record);
+				var ac:ArrayCollection = new ArrayCollection(a);
+				
+				initialDataProvider = ac;
+				dataProvider = ac;
+				
+				// Get the values from properties XML.
+				if (properties.@selectedViewIndex.toString() != null &&
+					Number(properties.@selectedViewIndex) < viewStack.numChildren) // Make sure the index is in range.
+					selectedViewIndex = Number(properties.@selectedViewIndex);
+				else
+					selectedViewIndex = 0;
+				
+				//Alert.show(properties.settings.length());
+				//VTT.debug("Settings XML\n"+ properties.settings);
+				//SettingsSlidingPanel
+				settingsPanel = new SettingsSlidingPanel(properties);
+				settingsPanel.percentHeight = 100;
+				settingsPanel.width = 340;
+				settingsPanel.startupState = "closed";
+				settingsPanel.anchor = "right";
+				settingsPanel.legend.dataProvider = lineChart;	
+				settingsPanel.legend.addEventListener(LegendMouseEvent.ITEM_CLICK,removeChartItem); 
+			    settingsPanel.legend.addEventListener(LegendMouseEvent.ITEM_MOUSE_OVER,explode);
+	      		settingsPanel.legend.addEventListener(LegendMouseEvent.ITEM_MOUSE_OUT,implode);		
+	      		
+	      		var canTmp:Canvas = settingsPanel.getChildAt(0) as Canvas;
+	      		VTT.debug("SettingsPanel Canvas (" + canTmp.name + ")");// + ": " + settingsPanel.getChildren().toString());
+	      		VTT.debug("Canvas Children (" + canTmp.getChildren().toString() + ")");
+	      		
+	      		//VTT.debug(settingsPanel.pod07combo1.value);
+				
+				/*<mx:Legend 
+			    	id="gLegend" 
+			    	dataProvider="{lineChart}" 
+			    	direction="vertical" 
+			    	labelPlacement="right" 
+			    	width="100%"
+			    	verticalGap="5" 
+			    	markerWidth="10" 
+			    	markerHeight="10" 
+			    	itemClick="removeChartItem(event)" 
+			    	itemMouseOver="explode(event)"
+	      			itemMouseOut="implode(event)"
+	      		    toolTip="Click to Remove" />*/
+				
+				//settingsPanel.legend.dataProvider = columnChart;
+				columnChart.addEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				//columnChartCanvas.addChild(settingsPanel);
+				//columnChartCanvas.addChild(createSettingsPanel());
+				lineChart.addEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				lineChartCanvas.addChild(settingsPanel);
+				// check dataSource_from & dataSource_to
+				/*if((properties.@id == "pod31vvm") || (properties.@id == "pod03vvm")) {
+			  		if(comboBox_from == null) {
+						comboBox_from = new ComboBox();
+						comboBox_from.id = "comboBox_from"
+						if(properties.@dataSource_from.toString() != "") {
+							//hBox.addChildAt(comboBox_from, 0);
+							dataControlsID.addChildAt(comboBox_from, 0);
+							onDatasource_custom(comboBox_from);
+						}
+					}
+					if(comboBox_to == null) {
+						comboBox_to = new ComboBox();
+						comboBox_to.id = "comboBox_to"
+						if (properties.@dataSource_to.toString() != "") {
+							//hBox.addChildAt(comboBox_to,1);
+							dataControlsID.addChildAt(comboBox_to,1);
+							onDatasource_custom(comboBox_to);
+						}
+					}
+					if(swapButton == null) {
+						swapButton = new Button();
+						swapButton.label = "Add";
+						//hBox.addChildAt(swapButton,2);
+						dataControlsID.addChildAt(swapButton,2);
+						swapButton.addEventListener(MouseEvent.CLICK, onCombBoxButtonClicked);
+					}
+					if((label_from == null) || (label_to == null)) {
+						label_from = new Label();
+						label_to = new Label();
+						label_from.text = "From handset:";
+						label_from.setStyle("fontSize", 12);
+					    label_from.setStyle("fontWeight", "bold");
+					    label_to.text = "To handset:";
+					    label_to.setStyle("fontSize", 12);
+					    label_to.setStyle("fontWeight", "bold");
+					    //label_to.setStyle("paddingLeft", 20);
+					    //hBox.addChildAt(label_from, 0);
+					    //hBox.addChildAt(label_to, 2);
+						dataControlsID.addChildAt(label_from, 0);
+						dataControlsID.addChildAt(label_to, 2);
+					}
+				}*/
+			}
+			
+			public function onCombBoxButtonClicked(e:MouseEvent):void {
+				var from_handset:String = comboBox_from.selectedLabel;
+				var to_handset:String = comboBox_to.selectedLabel;
+				if(colorNum == 4)
+					colorNum = 0;
+				onDataChange(from_handset, to_handset);
+				colorNum = colorNum + 1;	
+			}
+			
+			[Bindable] public var chartData:Array;
+			[Bindable] public var mainData:ArrayCollection;
+			
+			 override protected function parseXMLData(e:ResultEvent):void {          	
+            	//Alert.show(e.result.record.toString());
+            	if((e.result.record == null) || (e.result.record.toString()=="")) {
+            		Alert.show("No data!");
+            		colorNum = colorNum - 1;
+            		return;
+            	}
+            	// ifong
+            	// add to the hsList
+            	var from_handset:String = comboBox_from.selectedLabel;
+				var to_handset:String = comboBox_to.selectedLabel;
+            	var tmpList:Array = hsListSource;
+            	/*
+            	var tmpLabel:Label = new Label();
+            	tmpLabel.text = "test1";
+               	tmpLabel.setStyle("color", colorArray[colorNum]);
+            	tmpList.push(tmpLabel);
+            	*/
+            	
+            	
+            	
+            	
+				tmpList.push(from_handset+ '&#0187;'+ to_handset);
+				//tmpList.push(tmpText);
+				//hsList.dataProvider = tmpList;
+				// others
+            	chartData = xmlListToObjectArray(e.result.record);
+            	mainData = new ArrayCollection(chartData);
+       			// create a new line
+            	var ls:LineSeries; 
+            	ls = new LineSeries(); 
+				ls.xField = "server_date"; 
+				ls.yField = "cumm_count";
+				//ls.displayName = getEventName();
+				ls.displayName = from_handset + "&#0187;" + to_handset;
+				//ls.setStyle("lineStroke", new Stroke(Math.random()*15077215+15000, 3, 3.0));
+				ls.setStyle("itemRenderer", new ClassFactory(qs.charts.renderers.RollOverBoxItemRenderer));
+				ls.setStyle("lineStroke", new Stroke(colorArray[colorNum], 1, 3.0));
+				ls.dataProvider = mainData;
+				
+				//ls.dataTipItems = ['Test'];
+				// add the new line into the line chart source
+				var tmp:Array = lineChart.series; 
+				tmp.push(ls); 
+				lineChart.series = tmp;
+				// update the view 
+				lineChart.invalidateSeriesStyles(); 
+				
+                updateMainData();
+                
+                dispatchEvent( new Event(Event.COMPLETE, true));
+            }
+            
+           	private function updateMainData():void
+            {
+                rightStart = chartData.length; // the number of records in chartData
+                mainData.source = chartData.source.slice(leftStart,rightStart);
+            }
+			// ------------------------------------------------------------------
+			
+			public function dateChangeHandler(e:DateChangeEvent):void {
+				onDateChange(e.startdate, e.enddate);
+		    }
+		    
+		    public function dataChangeEventHandler(e:DataChangeEvent):void {
+				//var xml:XML = new XML(e.resultEvent.result);
+				//VTT.debug(xml.toXMLString());
+				//Alert.show(e.type);
+				if((e.resultEvent.result.record == null) || (e.resultEvent.result.record.toString()=="")) {
+            		Alert.show("No data!");
+            		colorNum = colorNum - 1;
+            		return;
+            	}
+            	//XML To ArrayCollection
+            	chartData = xmlListToObjectArray(e.resultEvent.result.record);
+            	mainData = new ArrayCollection(chartData);
+       			// create a new line
+            	var ls:LineSeries; 
+            	ls = new LineSeries(); 
+				ls.xField = properties.@categoryField;
+				ls.yField = properties.@valueField;
+				ls.displayName = e.buttonControl.dataDisplayLabel;
+				//ls.displayName = "Dynamic Line Series";//from_handset + "&#0187;" + to_handset;
+				//ls.setStyle("lineStroke", new Stroke(Math.random()*15077215+15000, 3, 3.0));
+				ls.setStyle("itemRenderer", new ClassFactory(qs.charts.renderers.RollOverBoxItemRenderer));
+				ls.setStyle("lineStroke", new Stroke(colorArray[colorNum], 1, 3.0));
+				ls.dataProvider = mainData;
+				
+				// add the new line into the line chart source
+				var tmp:Array = lineChart.series; 
+				tmp.push(ls); 
+				lineChart.series = tmp;
+				// update the view 
+				lineChart.invalidateSeriesStyles(); 
+				                
+                dispatchEvent( new Event(Event.COMPLETE, true));
+		    }
+			
+			private function set selectedViewIndex(n:Number):void
+			{
+				_selectedViewIndex = n;
+				if (n == 0)
+				{
+					chart = columnChart;
+					series = columnSeries;
+				}
+				else
+				{
+					chart = lineChart;
+					series = lineSeries;
+				}
+			}
+			
+			private function onChangeComboBox(e:ListEvent):void
+			{
+				var index:Number = ComboBox(e.target).selectedIndex;
+				selectedViewIndex = index;
+				dispatchViewStackChange(index);
+			}
+
+			
+			private function columnChartDataTipFunction(o:HitData):String
+			{
+			
+				var s:String = ""
+				var this_series:LineSeries = LineSeries(o.element);
+				var a:Array = properties.@dataTipUnitLabel.split("*");
+				var n:String = this_series.displayName;
+				if (n && n != "")
+					s += "<b>" + n + "</b><BR/>";
+				s += o.item[properties.@dataTipLabelField] + "\n";
+				s += a[0] + numberFormatter.format(o.item[properties.@valueField]) + a[1] + "\n";
+				return s;
+				
+			}
+			
+			// Creates random drill down data.
+			// Assumes initial data is day and breaks down hours into 24 hours.
+			public function createDrillDownData(data:Object):ArrayCollection
+			{
+				var ac:ArrayCollection = new ArrayCollection();
+				var total:Number = data[properties.@valueField];
+				var len:Number = 30;
+				var randomPercents:Array = new Array();
+				var totalPercents:Number = 0;
+				var value:Number;
+				// Generate an Array of random numbers that will be used to create percentages of the totals in the next loop.
+				for (var i:Number = 0; i < len; i ++)
+				{
+					value = Math.max(.1, Math.random());// Make sure the number is not zero.
+					randomPercents.push(value);
+					totalPercents += value;
+				}
+
+				for (i = 0; i < len; i ++)
+				{
+					var o:Object = new Object();
+					value = (randomPercents[i] / totalPercents) * total;
+					o[properties.@valueField] = Math.round(value * 10) / 10;
+					o[properties.@categoryField] = i + 1;
+					ac.addItem(o);
+				}
+				
+				return ac;
+			}
+			
+			public function drillDown(e:ChartItemEvent):void
+			{
+				chart.showDataTips = false;
+				drillToIndex = e.hitData.chartItem.index
+				drillDownEffect.drillFromIndex = drillToIndex;
+				series.setStyle("showDataEffect", drillDownEffect);
+				dataProvider = createDrillDownData(Object(e.hitData.chartItem.item)); 
+				
+				columnChart.removeEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				lineChart.removeEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				columnChart.addEventListener(MouseEvent.CLICK, drillUp);
+				lineChart.addEventListener(MouseEvent.CLICK, drillUp);
+			}
+			
+			public function drillUp(e:MouseEvent):void
+			{
+				chart.showDataTips = false;
+				drillUpEffect.drillToIndex = drillToIndex;
+				series.setStyle("showDataEffect", drillUpEffect);
+				dataProvider = initialDataProvider; 
+				
+				columnChart.addEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				lineChart.addEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				columnChart.removeEventListener(MouseEvent.CLICK, drillUp);
+				lineChart.removeEventListener(MouseEvent.CLICK, drillUp);
+			}
+			
+		]]>
+	</mx:Script>
+	<mx:Script>
+		<![CDATA[
+			import mx.charts.LinearAxis;
+			private var selectedLineSeries:LineSeries;
+			//Boolean value to make sure that the animation is smooth and that the correct item is exploded.
+			//the item out event gets fired when the mouse moves from label to the marker
+			private var over : Boolean = false;
+			//explode the section of the chart that was just moused over in the legend
+			private function explode(event : LegendMouseEvent) : void {
+			    LineSeries(event.item.element).radius = 7;
+			    over = true;//set the flag to true
+			}
+			 
+			//on the mouse out event this gets called, start a timer in case the user is just moving from label to marker or vice-versa
+			private function implode(event : LegendMouseEvent) : void {
+			  LineSeries(event.item.element).radius = 4;
+			  over = false;//if you don't reset this then when the user moves the mouse down the list nothing will happen
+			}
+			
+			private function alertRemoveListener(eventObj:CloseEvent):void {
+                // Check to see if the OK button was pressed.
+                if (eventObj.detail==Alert.OK) {
+                    //selectedLineSeries.alpha = 0;
+                    var objToRemoveIndex:int;
+					for ( var i:int = 0; i < lineChart.series.length; i++ )
+					{
+						if ( lineChart.series[i] == selectedLineSeries )
+						{
+					  		objToRemoveIndex = i;
+						}
+					}
+					var tmp:Array = lineChart.series; 
+					tmp.splice(objToRemoveIndex,1);
+					lineChart.series = tmp; 
+					lineChart.invalidateSeriesStyles(); 
+                }
+            }
+			
+			private function removeChartItem(event : LegendMouseEvent) : void {
+				selectedLineSeries = LineSeries(event.item.source);
+				Alert.show("Are you sure you want to Remove this LineSeries?", "Remove Confirmation", 
+							Alert.OK | Alert.CANCEL, this, alertRemoveListener, null, Alert.OK);
+			}
+		
+			private function resetZoom():void {
+				// Update Vertical Axis
+				var lineAxis:LinearAxis = new LinearAxis();
+				lineAxis.autoAdjust;
+				lineChart.verticalAxis = lineAxis;
+			}
+			private function checkZoom():void {
+				VTT.debug("Axis Selected Rectangle: ");
+				VTT.debug("\t\tWidth, Height: " + range.rectWidth + ", " + range.rectHeight);
+				VTT.debug("\t\tX,Y Value: " + range.rectX + ", " + range.rectY);
+				// Create Points
+				var p1:Point = new Point(range.rectX, range.rectY);
+                var p1Global:Point = lineChart.localToGlobal(p1);
+                var p2:Point = new Point(0, range.rectY + range.rectHeight);
+                var p2Global:Point = lineChart.localToGlobal(p2);
+                //var rect:Rectangle = new Rectangle(p1Global.x, p1Global.y, p2Global.x, p2Global.y)
+                VTT.debug("\t\t Rect Global: " + p1Global.x + "," + p1Global.y + "," + p2Global.x + "," + p2Global.y);
+                VTT.debug("\t\t Rect Point: " + range.rectX + "," + range.rectY + "," + range.rectWidth + "," + range.rectHeight);
+				VTT.debug("VerticalAxisData: " + lineChart.localToData(p1) + "," + lineChart.localToData(p2));
+				// Update Vertical Axis
+				var lineAxis:LinearAxis = new LinearAxis();
+				lineAxis.minimum = lineChart.localToData(p2)[1];
+				lineAxis.maximum = lineChart.localToData(p1)[1];
+				lineChart.verticalAxis = lineAxis;
+			}
+		]]>
+	</mx:Script>
+	
+	<effects:DrillDownEffect id="drillDownEffect" duration="1500" effectEnd="chart.showDataTips=true" />
+    <effects:DrillUpEffect id="drillUpEffect" duration="1500" effectEnd="chart.showDataTips=true"/>
+  	 
+	<mx:HBox id = "hBox" width="100%" height="5%" horizontalAlign="right">
+		<mx:Button label="Reset Zoom" click="resetZoom()" />
+		<mx:Button label="Zoom Selected" click="checkZoom()" />
+		<!--<mx:CheckBox label="Fix Axis" id="fix" /> 
+		<flexlib:HSlider 
+			trackHighlightSkin="flexlib.skins.SliderThumbNoGripHighlightSkin"
+			allowTrackClick="true" allowThumbOverlap="true" 
+			liveDragging="false" 
+			showDataTip="true"  dataTipPlacement="right" dataTipOffset="0" 
+			showTrackHighlight="true"
+			thumbCount="2" width="100%"
+			values="[0, 2000000]" labels="[min, max]"
+			minimum="-2000000" maximum="2000000" snapInterval="1"
+			change="fix.selected = true" 
+			id="axisValues" />-->
+		<mx:ComboBox
+			dataProvider="['Bar Chart', 'Line Chart']"
+			selectedIndex="{_selectedViewIndex}"
+			change="onChangeComboBox(event)" />
+	</mx:HBox> 
+	<mx:HBox id = "hButtonBox" width="100%" height="95%">
+		<mx:VBox id = "hBoxGraph" width="100%" height="100%" horizontalAlign="left">
+			<mx:ViewStack
+				id="viewStack"
+				selectedIndex="{_selectedViewIndex}"
+				creationPolicy="all"
+				width="100%" height="100%">
+				<mx:Canvas id="columnChartCanvas" width="100%" height="100%">
+					<mx:ColumnChart
+						id="columnChart"
+						width="100%" height="100%"
+						dataProvider="{dataProvider}"
+						showDataTips="true" 
+						dataTipFunction="columnChartDataTipFunction">
+						<mx:series>
+							<mx:ColumnSeries
+								id="columnSeries"
+								yField="{properties.@valueField}">
+								<mx:itemRenderer>
+									<mx:Component>
+										<renderers:RollOverBoxItemRenderer color="#738994" overColor="#FEA318" downColor="#E48701" />
+									</mx:Component>
+								</mx:itemRenderer>
+								<mx:fill>
+								<mx:SolidColor color="#738994"/>
+								</mx:fill>
+							</mx:ColumnSeries>
+						</mx:series>
+						<mx:horizontalAxis>
+							<mx:CategoryAxis
+								categoryField="{properties.@categoryField}" />
+						</mx:horizontalAxis>
+					</mx:ColumnChart>
+				</mx:Canvas>
+				<mx:Canvas id="lineChartCanvas" width="100%" height="100%">
+					<mx:LineChart
+						id="lineChart"
+						width="100%" height="100%"
+						dataProvider="{dataProvider}"
+						showDataTips="true"
+						dataTipFunction="columnChartDataTipFunction">
+						<mx:series>
+							<!--displayName="HERO200-ANDROID &#0187; HERO200-ANDROID"-->
+							<mx:LineSeries
+								id="lineSeries"
+								displayName="{properties.@legendLabel}"
+								yField="{properties.@valueField}">
+								<mx:itemRenderer>
+									<mx:Component>
+										<renderers:RollOverBoxItemRenderer />
+									</mx:Component>
+								</mx:itemRenderer>
+								<mx:lineStroke>
+				                    <mx:Stroke color="0xFF0000" alpha="3" />
+				                </mx:lineStroke>
+							</mx:LineSeries>
+						</mx:series>
+						<mx:annotationElements>
+			                <mx:Array>
+			                    <ranges:RangeSelector id="range" />
+			                </mx:Array>
+			            </mx:annotationElements>
+						<!--<mx:verticalAxis>
+				            <mx:LinearAxis minimum="{fix.selected? axisValues.values[0]:undefined}" maximum="{fix.selected? axisValues.values[1]:undefined}" />
+				        </mx:verticalAxis>-->
+						<mx:horizontalAxis>
+							<mx:CategoryAxis
+								categoryField="{properties.@categoryField}" />
+						</mx:horizontalAxis>
+					</mx:LineChart>
+						<!--<sp:SlidingPanel  
+			                width="340" 
+			                height="100%"
+			                startupState="closed"
+			                anchor="right">
+			                <mx:Canvas width="100%" height="100%" backgroundAlpha="1" backgroundColor="#FFFFFF"
+			                     horizontalScrollPolicy="off" verticalScrollPolicy="off">
+			           			<mx:TabNavigator width="100%" height="100%" label="Legend">
+			           				<mx:VBox id="legendControlsID" label="Legend" paddingLeft="10" paddingTop="10">
+					           			<mx:Label color="0x323232" text="From Handset &#0187; To Handset:" textAlign="left" fontWeight="bold" width="100%"/>
+					                    <mx:Legend 
+									    	id="gLegend" 
+									    	dataProvider="{lineChart}" 
+									    	direction="vertical" 
+									    	labelPlacement="right" 
+									    	width="100%"
+									    	verticalGap="5" 
+									    	markerWidth="10" 
+									    	markerHeight="10" 
+									    	itemClick="removeChartItem(event)" 
+									    	itemMouseOver="explode(event)"
+							      			itemMouseOut="implode(event)"
+							      		    toolTip="Click to Remove" />
+									</mx:VBox>
+									<mx:VBox id="dataControlsID" label="Data Controls" paddingLeft="10" paddingTop="10"/>
+					      		</mx:TabNavigator>
+			                </mx:Canvas>
+		             </sp:SlidingPanel>-->
+				</mx:Canvas>
+			</mx:ViewStack>
+		</mx:VBox>
+		  
+	</mx:HBox>
+	
+</PodContentBase>

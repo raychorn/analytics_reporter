@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Panel title="Devices Overview" xmlns:mx="http://www.adobe.com/2006/mxml" 
+	height="100%" width="100%" backgroundAlpha=".8">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;	
+			import com.mxplay.analytics.util.AppXML;
+			
+			private const CONTEXT_URL:String = Settings.SiteUrl;
+			
+			[Bindable] public var dataRange:String = Settings.dataRange;
+			
+			[Bindable] var selection:String;
+			[Bindable] var year:String;
+			[Bindable] var month:String;
+			[Bindable] var day:String;
+			
+			[Bindable] var selectedDevice:String = "9530";
+						
+			[Bindable] private var deviceData:AppXML = new AppXML();	
+			
+			[Bindable]
+            public var phones:ArrayCollection = new ArrayCollection(
+                [ {label:"Sony-Ericsson-G705", src:"9530", data:1}, 
+                  {label:"Sony-Ericsson-W830i", src:"C721", data:2}, 
+                  {label:"Nokia-N80", src:"U740", data:3},
+                  {label:"Nokia-N77", src:"U750", data:4},
+                  {label:"LG-KG375", src:"U900", data:5}, 
+                  //{label:"BBY9530", src:"9530", data:1}, 
+                  //{label:"Casio C721", src:"C721", data:2}, 
+                  //{label:"SCH-U740", src:"U740", data:3},
+                  //{label:"SCH-U750", src:"U750", data:4},
+                  //{label:"SCH-U900", src:"U900", data:5}, 
+                  {label:"SCH-U940", src:"U940", data:6},
+                  {label:"SCH-U960", src:"U960", data:7},
+                  {label:"VX 10000", src:"VX10000", data:8},
+                  {label:"VX 11000", src:"VX11000", data:9},
+                  {label:"VX 9100", src:"VX9100", data:10},
+                  {label:"VX 9200", src:"VX9200", data:11},
+                  {label:"VX 9600", src:"VX9600", data:12},
+                  {label:"VX 9700", src:"VX9700", data:13}
+                 ]);
+                 
+             public function dataRangeHandler(range:Object):void {
+				dataRange = range.data;
+				dateChangeHandler(Settings.dateSel);
+		    }
+                 
+             public function dateChangeHandler(date:Date):void {
+		    	if (date == null) {
+	            	date = Settings.dateSel;
+	                selection = date.getFullYear().toString() +
+	                    '/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	                year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	            } else {
+	                selection = date.getFullYear().toString() +
+	                    '/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	                year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	            }
+	            getData();
+		    }
+		    
+		    private function updateDevice(event:Event):void {
+		    	gc.source = deviceData.appXML.record;
+		    	gc.refresh();
+		    	myADG.expandAll();
+		    	//Analytics.debug("device = " + deviceData.appXML.device);
+		    }
+		    
+		    public function getData():void {
+            	//Create Event Listeners
+            	deviceData.addEventListener(Event.COMPLETE, updateDevice);
+            	//Load Data/URL
+            	//TODO: Case dataRange and load Month/Day
+            	if (dataRange == "daily"){
+            		deviceData.loadData(CONTEXT_URL + "/devices/" + Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml?device=" + selectedDevice	);
+            	} else {
+            		deviceData.loadData(CONTEXT_URL + "/devices/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml?device=" + selectedDevice	);
+            	}
+            }
+                 
+            /*private function loadImage():void {
+                var m:Matrix = new Matrix();
+                m.createGradientBox(450, 40);
+                loadedImage.addEventListener(ProgressEvent.PROGRESS, progress);
+                loadedImage.load("com/mxplay/analytics/assets/phones/BBY9530.jpg");
+            }*/
+                 
+         	/*private function smoothImage(ev:Event):void{
+                //set image smoothing so image looks better when transformed.
+            	var bmp:Bitmap = ev.target.content as Bitmap;
+            	if (bmp) {
+            		bmp.smoothing = true;
+            	}
+            }*/
+            
+            /*private function progress(event:Event):void{
+                grid.graphics.clear();
+                grid.graphics.beginGradientFill("linear", [0x0000ff, 0xffffff], [1, 1], [0x00, 0xff], m);
+                grid.graphics.drawRect(0, 0, (loadedImage.bytesLoaded / loadedImage.bytesTotal) * 300, 40);
+                grid.graphics.endFill();
+            }*/
+
+            private function closeHandler(event:Event):void {
+                //myLabel.text = "You selected: " +  ComboBox(event.target).selectedItem.label;
+                //myData.text = "Data: " +  ComboBox(event.target).selectedItem.data;
+                var s:String = ComboBox(event.target).selectedItem.data;
+                selectedDevice = ComboBox(event.target).selectedItem.src;
+                getData();
+                switch(s) {
+                	case "1":
+                		//loadedImage.source = "com/mxplay/analytics/assets/phones/BBY9530.jpg";
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/demo/Sony-Ericsson-G705-small.jpg";
+                		break;
+                	case "2":
+                		//loadedImage.source = "com/mxplay/analytics/assets/phones/C720.jpg";
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/demo/Sony-Ericsson-W830i-small.jpg";
+                		break;
+                	case "3":
+                		//loadedImage.source = "com/mxplay/analytics/assets/phones/SCH-U740.jpg";
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/demo/Nokia-N80-small.jpg";
+                		break;
+            		case "4":
+            			//loadedImage.source = "com/mxplay/analytics/assets/phones/SCH-U750.jpg";
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/demo/Nokia-N77-small.jpg";
+                		break;
+            		case "5":
+            			//loadedImage.source = "com/mxplay/analytics/assets/phones/SCH-U900.jpg";
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/demo/LG-KG375-small.jpg";
+                		break;
+            		case "6":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/SCH-U940.jpg";
+                		break;
+            		case "7":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/SCH-U960.jpg";
+                		break;
+            		case "8":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/VX10000.jpg";
+                		break;	
+            		case "9":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/VX11000.jpg";
+                		break;
+            		case "10":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/VX9100.jpg";
+                		break;
+            		case "11":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/VX9200.jpg";
+                		break;
+            		case "12":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/VX9600.jpg";
+                		break;
+            		case "13":
+                		loadedImage.source = "com/mxplay/analytics/assets/phones/VX9700.jpg";
+                		break;
+                }
+            }     
+		]]>
+	</mx:Script>
+	<mx:HBox>
+		<mx:Box borderStyle="solid">
+			<mx:Image width="128" height="199" id="loadedImage" source="com/mxplay/analytics/assets/phones/demo/Sony-Ericsson-G705-small.jpg" />
+		</mx:Box>
+		<mx:Box>
+			<mx:Text text="Phone Information:" textDecoration="underline" />
+	        <mx:AdvancedDataGrid id="myADG" width="100%" height="100%" color="0x323232" initialize="gc.refresh();">        
+	            <mx:dataProvider>
+	                <mx:GroupingCollection id="gc">
+	                    <mx:grouping>
+	                        <mx:Grouping>
+	                            <mx:GroupingField name="server_make"/>
+	                            <mx:GroupingField name="server_model"/>
+	                        </mx:Grouping>
+	                    </mx:grouping>
+	                </mx:GroupingCollection>
+	            </mx:dataProvider>        
+	            <mx:columns>
+	                <mx:AdvancedDataGridColumn width="150" dataField="server_make" headerText="Device Instances"/>
+	                <mx:AdvancedDataGridColumn dataField="server_model" headerText="Model"/>
+	                <mx:AdvancedDataGridColumn dataField="server_count" headerText="Count"/>
+	                <mx:AdvancedDataGridColumn dataField="server_total" headerText="Total"/>
+	            </mx:columns>
+	       </mx:AdvancedDataGrid>
+		</mx:Box>
+	</mx:HBox>
+	<mx:ApplicationControlBar height="5%" width="100%">
+	<mx:HBox>
+		<mx:ComboBox dataProvider="{phones}" width="170" color="0x000000"
+    	close="closeHandler(event);"/>
+		<mx:RadioButton id="cbDevNumber" groupName="AppUsage" label="# Amount"
+		selected="true" click="" color="#0033CC"/>
+		<mx:RadioButton id="cbDevPercent" groupName="AppUsage" label="% Change" click=""
+		color="#009900"/>	
+	</mx:HBox>
+	</mx:ApplicationControlBar>	
+</mx:Panel>

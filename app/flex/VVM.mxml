@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application
+    xmlns:mx="http://www.adobe.com/2006/mxml"
+    xmlns:pairedStackEffects="ws.tink.flex.effects.stackEffects.pairedStackEffects.*"
+    xmlns:pom="com.mxplay.analytics.components.*"
+    xmlns:cnx="com.mxplay.vvm.components.*"
+    preloader="com.mxplay.analytics.preloader.BlueBarPreloader"
+    layout="vertical"
+    horizontalAlign="center"
+    verticalAlign="top"
+    paddingLeft="0"
+    paddingRight="0"
+    paddingTop="0"
+    paddingBottom="0"
+    width="100%"
+    height="100%">
+    <mx:Style source="com/mxplay/analytics/assets/main.css"/>
+    <mx:Style source="com/mxplay/analytics/assets/styles.css" />
+    <mx:Script>
+    	<![CDATA[
+    		import mx.utils.URLUtil;
+    		import com.mxplay.analytics.components.DebugPanel;
+    		import com.mxplay.analytics.events.AccountCreateEvent;
+    		import com.mxplay.analytics.events.LoginEvent;
+    		import com.mxplay.analytics.events.DateChangeEvent;
+    		import com.mxplay.analytics.util.DebugMessage;
+    		import mx.effects.easing.Bounce;
+    		import mx.controls.Alert;
+    	
+    		[Bindable]
+    		private var _user : XML
+    		
+    		public static function debug(str:String):void {
+    			application.debugPanel.addMessage(new DebugMessage(str));
+    		}
+    		
+    		private function handleAccountCreate(e:AccountCreateEvent):void {
+    			login(e.user);
+    		}
+    		
+    		private function handleLogin(e:LoginEvent):void {
+    			//Alert.show(mx.utils.URLUtil.getServerNameWithPort(Application.application.url),"URL");
+    			Settings.SiteUrl = "http://" + mx.utils.URLUtil.getServerNameWithPort(Application.application.url);
+    			login(e.user);
+    		}
+    		
+    		private function login(user:XML):void {
+    			_user = user;
+    			//debug("user = " + user);
+    			mainStack.selectedChild = mainBox;
+    		}
+    	]]>
+    </mx:Script>
+    	
+    <pairedStackEffects:Fade id="fade" duration="1000"/>
+    	
+    <mx:VDividedBox width="100%" height="100%">
+	    <mx:ViewStack id="mainStack" width="100%" height="100%" >
+	    	<cnx:SplashBox id="splashBox" styleName="glassPanel" showEffect="fade" hideEffect="fade" accountCreate="handleAccountCreate(event)" login="handleLogin(event)" />
+	    	<cnx:MainBox id="mainBox" styleName="glassPanel" showEffect="fade" hideEffect="fade" user="{_user}" />
+	    </mx:ViewStack>
+	    <pom:DebugPanel id="debugPanel" width="100%" height="0%" />
+    </mx:VDividedBox>
+</mx:Application>

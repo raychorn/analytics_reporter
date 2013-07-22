@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:pom="com.mxplay.analytics.components.*"
+	horizontalAlign="center" verticalAlign="top" verticalGap="0"
+	width="100%" height="100%">
+<mx:Metadata>
+	[Event(name="accountCreate", type="com.mxplay.analytics.events.AccountCreateEvent")]
+	[Event(name="login", type="com.mxplay.analytics.events.LoginEvent")]
+</mx:Metadata>
+<mx:Script>
+	<![CDATA[
+		import com.mxplay.analytics.events.AccountCreateEvent;
+		import com.mxplay.analytics.events.LoginEvent;
+		
+		[Bindable]
+		private var _reviews:String =
+			'"SmithMicro Software - VVM Demonstration -- for help email lramos @ smsi .com"';		
+	]]>
+</mx:Script>
+	<mx:VBox styleName="topVVM" width="100%" height="15" />
+	<mx:VBox styleName="tabNav" width="100%" height="65" />
+	<mx:VBox width="550" horizontalAlign="center">
+	    <mx:Image source="com/mxplay/analytics/assets/vvm_analytics.png" />
+	    <!-- <mx:Label text="oursmithmicro - TURN IT ON" /> -->
+	    <mx:Spacer height="10" />
+	    <mx:Text width="550" text="{_reviews}" />
+	    <mx:Spacer height="10" />
+	    <!-- <mx:Accordion width="400" height="150"> -->
+	    	<!-- <pom:AccountCreateBox /> -->
+	    	<pom:LoginBox />
+	    <!-- </mx:Accordion> -->
+	    <mx:Label text="Copyright 2010 -- Revision 0007" />
+	</mx:VBox>
+	
+</mx:VBox>

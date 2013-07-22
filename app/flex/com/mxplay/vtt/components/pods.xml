@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Used to specify the pod content in the dashboard sample app.
+To keep the implementation straightforward, all of the data is
+stored in this file rather than a database or separate XML files.
+-->
+<views>
+	<!--
+		<view> - Represents a tab.
+			id - Must be unique so state can be saved properly.
+			label - The label of the tab.
+			<pod>
+				id - Must be unique per view so state can be saved properly.
+				type - Type of pod content. Valid values are chart, pieChart, form and list. "chart" and "pieChart" each have drill downs to one level.
+					   "chart" is a fixed drill down to 30 days in a month.
+					   "pieChart" is a fixed drill down to four geographical regions.
+				title - The title of the pod.
+				containers - The number of "canvases" you want in a View for seperate pod sizes
+				percentWidth - A comma seperated list of widths for the containers respectively
+				percentHeight - A comma seperated list of heigths for the containers respectively
+				dataSource - The xml to load for the pod.
+				selectedViewIndex - Sets the default content view for pod content with a view stack. 
+				valueField - For chart pods, the field from the xml data to use for displaying the value. This field should be numeric.
+				categoryField - For chart pods, the field from the xml data to use for displaying the category.
+				dataTipUnitLabel - Rollover label used for displaying the units.
+								   Label is delimited by "*" and places the first value before the unit and the second value after the unit. Ex: $50M.
+				dataTipLabelField - Rollover label field used for PieCharts.
+				labels - For form pods, used to label the fields.
+				dataFields - For form pods, used to assign the data fields to the form fields.
+							 The second field should always be a date expressed in milliseconds since the epoch.
+	-->
+	<view
+		id="view0"
+		label="Dashboard"
+		containers="1"
+		percentWidth="100"
+		percentHeight="100">
+		<pod
+			id="pod01vtt"
+			type="chart"
+			title="VTT Chart 1 by Hansets"
+			defaultContainer="1"
+			dataSource="/vttandroiddetails/vtt/daily.xml?"
+			selectedViewIndex="1"
+			valueField="total_sub_cnt"
+			categoryField="vtt_hs_type"
+			dataTipUnitLabel="* Total Subscriptions"
+			dataTipLabelField="record_date"/>
+		<pod
+			id="pod07vtt"
+			type="chart"
+			title="Subscriptions by Handset"
+			defaultContainer="1"
+			dataSource="/vttandroiddetails/vtt/daily.xml?vtt_hs_type=HERO200-ANDROID"
+			legendLabel="HERO200-ANDROID"
+			selectedViewIndex="1"
+			valueField="total_sub_cnt"
+			categoryField="record_date"
+			dataTipUnitLabel="* Handset Swaps"
+			dataTipLabelField="record_date">
+			<settings 
+				id="settings01" 
+				label="Controls" >
+				<control 
+					type="label"
+					label="Legend:" />
+				<control 
+					type="legend" />
+				<control 
+					type="label"
+					label="Select Handset Type:" />
+				<control
+					type="combobox" 
+					id="pod07combo1"
+					datasource="/vttandroiddetails/vtt/daily.xml?"
+					labelField="vtt_hs_type" />
+				<control 
+					type="button"
+					controlFieldsId="pod07combo1"
+					controlFieldsParam="vtt_hs_type"
+					datasource="/vttandroiddetails/vtt/daily.xml?"
+					dataDisplayLabel="{vtt_hs_type} Graph"
+					label="Add Graph" />
+			</settings>
+			<settings 
+				id="settings02"
+				label="Help" >
+				<control 
+					type="label"
+					label="You may add or remove new graphs by clicking on either the button or the legend label." />
+			</settings>
+		</pod>
+		<pod
+			id="pod01vtt"
+			type="grid"
+			title="Summary Grid"
+			defaultContainer="1"
+			dataSource="/vttandroidsummaries/vtt/daily.xml?"
+			selectedViewIndex="0" 
+			labels="Date, Subscription Count, Upgraded Count, MRC Count, % Free Trial, % MRC from Free Trial"
+			dataFields="record_date,total_sub_cnt,hs_upgraded_to_vtt_cnt,mrc_user_cnt,percent_free_trial_opt_in,percent_mrc_from_free_trial_user" />
+		<pod
+			id="pod02vtt"
+			type="pieChart"
+			title="VTT Total Subscription by Handset"
+			defaultContainer="1"
+			dataSource="/vttandroiddetails/vtt/daily.xml?region=vtt_hs_type&value=total_sub_cnt"
+			valueField="value"
+			categoryField="region"
+			dataTipUnitLabel="* From Swaps"
+			dataTipLabelField="region"/>
+		<pod
+			id="pod03vtt"
+			type="checkedBoxLineChart"
+			defaultContainer="1"
+			title="VTT Chart 2"
+			dataSource="/vttandroiddetails/vtt/daily.xml?"
+			selectedViewIndex="0" 
+			checkBoxLabels="Total Subs,Upgraded to VTT,Free Trial Users,Free Trial to MRC" 
+			dataUrls="/vttandroidsummaries/vtt/daily.xml?view_count=total_sub_cnt&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=hs_upgraded_to_vtt_cnt&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=free_trial_user_cnt&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=free_trial_to_mrc_cnt&server_date=record_date"
+			/>
+		<pod
+			id="pod04vtt"
+			type="checkedBoxLineChart"
+			defaultContainer="1"
+			title="VTT Chart 3"
+			dataSource="/vttandroiddetails/vtt/daily.xml?"
+			selectedViewIndex="0" 
+			checkBoxLabels="Percent Free Trial,Percent Handset Upgrade,Percent MRC to Free Trial,Percent MRC User" 
+			dataUrls="/vttandroidsummaries/vtt/daily.xml?view_count=percent_free_trial_opt_in&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=percent_hs_upgrade&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=percent_mrc_from_free_trial_user&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=percent_mrc_user_cnt&server_date=record_date"
+			/>
+		<pod
+			id="pod05vtt"
+			type="grid"
+			title="Details Grid"
+			defaultContainer="1"
+			dataSource="/vttandroiddetails/vtt/daily.xml?"
+			selectedViewIndex="0" 
+			labels="Date, Handset Type, Expired, Free Trial"
+			dataFields="record_date,vtt_hs_type,expired_ft_cnt,free_trial_user_cnt" />
+		<pod
+			id="pod06vtt"
+			type="chart"
+			title="VTT Chart Summary Subscriptions"
+			defaultContainer="1"
+			dataSource="/vttandroidsummaries/vtt/daily.xml?"
+			selectedViewIndex="1"
+			valueField="total_sub_cnt"
+			categoryField="record_date"
+			dataTipUnitLabel="* Total Subscriptions"
+			dataTipLabelField="record_date"/>
+		<pod
+			id="pod07vtt"
+			type="form"
+			title="To Do"
+			defaultContainer="1"
+			dataSource="/bin/com/mxplay/vtt/components/tasks.xml"
+			labels="Name,Date,Description"
+			dataFields="name,date,description" />
+		<pod
+			id="pod08vtt"
+			type="cartesianChart"
+			defaultContainer="1"
+			title="VTT Checkbox Cartesian"
+			dataSource="/vttandroidsummaries/vtt/daily.xml?view_count=total_sub_cnt&server_date=record_date"
+			selectedViewIndex="0" 
+			checkBoxLabels="Total Subs,Upgraded to VTT,Free Trial Users,Free Trial to MRC" 
+			dataUrls="/vttandroidsummaries/vtt/daily.xml?view_count=total_sub_cnt&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=hs_upgraded_to_vtt_cnt&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=free_trial_user_cnt&server_date=record_date,/vttandroidsummaries/vtt/daily.xml?view_count=free_trial_to_mrc_cnt&server_date=record_date"
+			/>
+	</view>
+</views>

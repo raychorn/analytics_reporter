@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+			xmlns:pom="com.mxplay.analytics.components.*" 
+			xmlns:vzd="com.mxplay.verizonDemo.components.*">
+	<mx:HDividedBox width="100%" height="100%">
+			<mx:VDividedBox width="70%" height="100%" paddingLeft="10" paddingRight="10" paddingTop="10" paddingBottom="10">
+				<!--<vzd:CheckboxLine />-->
+				<!--<vzd:CheckedBoxLineChart />-->
+				<vzd:CheckedBoxLineChart label1="Connection Profiles Created"
+										 label2="Help Menu Usage"
+										 label3="VPN Sessions"
+										 label4="Usage Meter Usage" 
+										 dataUrl1="http://localhost:3000/bin/test-data.xml"
+										 dataUrl2="http://localhost:3000/bin/test-data1.xml"
+										 dataUrl3="http://localhost:3000/bin/test-data2.xml"
+										 dataUrl4="http://localhost:3000/bin/test-data3.xml"/>
+			</mx:VDividedBox>
+			<mx:VDividedBox width="30%" height="100%" paddingLeft="10" paddingRight="10" paddingTop="10" paddingBottom="10">
+				<!--<mx:HDividedBox width="100%" height="5%" >
+				</mx:HDividedBox>-->
+				<mx:HDividedBox width="100%" height="55%" >
+					<mx:Canvas width="100%" height="100%" >
+					<!--<vzd:ConnDropWWANDataGrid />-->
+					<!--<vzd:DataGridComponent header="WWAN Connection Drops by Top 10 Devices" 
+									   dataGridUrl="http://localhost:3000/bin/test-data1.xml" 
+									   colTexts="[server_count, test_server_date, server_event, server_total]"
+									   cols="[server_count, server_date, server_event, server_total]"/>--> 
+					</mx:Canvas>	
+				</mx:HDividedBox>
+				<mx:HDividedBox width="100%" height="45%" >
+					<!--<vzd:ConnFailErrorDataGrid />-->
+					<!--<vzd:DataGridComponent header="Top 5 Connection Failure Errors" 
+									   dataGridUrl="http://localhost:3000/bin/errorCodes.xml" 
+									   colTexts="[errCode, errMsg, qty, percent]"
+									   cols="[errCode, errMsg, qty, percent]"/>--> 		
+				</mx:HDividedBox>
+			</mx:VDividedBox>
+	</mx:HDividedBox>
+</mx:Canvas>

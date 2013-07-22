@@ -1,0 +1,32 @@
+ <records type="array">
+	<record>
+		<errCode>Error Code 678</errCode> 
+		<errMsg>QLM has lost a carrier signal from the network</errMsg>
+		<qty>26,432</qty>
+		<percent>26%</percent>
+	</record>
+ 	<record>
+		<errCode>Error Code 692</errCode> 
+		<errMsg>QLM has lost a carrier signal from the network</errMsg>
+		<qty>19,598</qty>
+		<percent>19%</percent>
+	</record>
+	<record>
+		<errCode>Error Code 744</errCode> 
+		<errMsg>QLM has lost a carrier signal from the network</errMsg>
+		<qty>12,378</qty>
+		<percent>12%</percent>
+	</record>
+	<record>
+		<errCode>Error Code 691</errCode> 
+		<errMsg>QLM has lost a carrier signal from the network</errMsg>
+		<qty>97,666</qty>
+		<percent>9%</percent>
+	</record>
+	<record>
+		<errCode>Error Code 630</errCode> 
+		<errMsg>QLM has lost a carrier signal from the network</errMsg>
+		<qty>97,664</qty>
+		<percent>9%</percent>
+	</record>	   		
+</records>

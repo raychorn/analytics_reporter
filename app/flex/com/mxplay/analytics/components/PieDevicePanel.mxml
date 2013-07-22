@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:head="com.mxplay.analytics.layout.*"
+	width="100%" height="100%" backgroundAlpha=".4" >
+	<head:GlassHeaders headerTitle="DEVICE STATISTICS" />
+	<mx:Style>
+        Legend {
+            horizontalGap: 50;
+            verticalGap: 15;
+        }
+    </mx:Style>
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.List;
+			import mx.controls.Alert;
+			import flash.events.Event;
+			import mx.rpc.events.ResultEvent;
+			import mx.collections.ArrayCollection;
+			import com.mxplay.analytics.util.AppXML;
+			
+			private const CONTEXT_URL:String = Settings.SiteUrl;
+			
+			[Bindable] public var dataRange:String = Settings.dataRange;
+			
+			[Bindable] private var devicesData:AppXML = new AppXML();
+		
+			[Bindable] var selection:String;
+			[Bindable] var year:String;
+			[Bindable] var month:String;
+			[Bindable] var day:String;
+		     
+		     [Bindable]
+		     public var devices:ArrayCollection = new ArrayCollection();
+		     
+		     [Bindable]
+            public var phones:ArrayCollection = new ArrayCollection(
+                [ {label:"Sony-Ericsson-G705", src:"9530", data:1}, 
+                  {label:"Sony-Ericsson-W830i", src:"C721", data:2}, 
+                  {label:"Nokia-N80", src:"U740", data:3},
+                  {label:"Nokia-N77", src:"U750", data:4},
+                  {label:"LG-KG375", src:"U900", data:5}, 
+                  //{label:"BBY9530", src:"9530", data:1}, 
+                  //{label:"Casio C721", src:"C721", data:2}, 
+                  //{label:"SCH-U740", src:"U740", data:3},
+                  //{label:"SCH-U750", src:"U750", data:4},
+                  //{label:"SCH-U900", src:"U900", data:5}, 
+                  {label:"SCH-U940", src:"U940", data:6},
+                  {label:"SCH-U960", src:"U960", data:7},
+                  {label:"VX 10000", src:"VX10000", data:8},
+                  {label:"VX 11000", src:"VX11000", data:9},
+                  {label:"VX 9100", src:"VX9100", data:10},
+                  {label:"VX 9200", src:"VX9200", data:11},
+                  {label:"VX 9600", src:"VX9600", data:12},
+                  {label:"VX 9700", src:"VX9700", data:13}
+                 ]);
+		     
+		    public function dataRangeHandler(range:Object):void {
+				dataRange = range.data;
+				dateChangeHandler(Settings.dateSel);
+		    }
+		    
+		    public function dateChangeHandler(date:Date):void {
+		    	if (date == null) {
+	            	date = Settings.dateSel;
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	            	if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            } else {
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	                if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            }
+	            getData();
+		    }
+		    
+		    private function updateDevices(event:Event):void {
+		    	devices.removeAll();
+		    	for each (var prop:XML in devicesData.appXML.device)
+            	{
+            		var obj:Object = {"Label":prop.server_model,"Amount":prop.server_count}
+            		devices.addItem(obj);
+            	}
+            	devicePie.dataProvider = devices;
+		    }
+		    
+		    public function getData():void {
+            	//Create Event Listeners
+            	//systemsData.addEventListener(Event.COMPLETE, updateSystems);
+            	//eventsData.addEventListener(Event.COMPLETE, updateEvents);
+            	devicesData.addEventListener(Event.COMPLETE, updateDevices);
+            	//Load Data/URL
+            	if (dataRange == "daily") {
+		        //	systemsData.loadData(CONTEXT_URL + "/systems/" + year + "/" + month + "/" + day + ".xml");
+		        //	eventsData.loadData(CONTEXT_URL + "/events/" + year + "/" + month + "/" + day + ".xml");
+		        	devicesData.loadData(CONTEXT_URL + "/devices/" + Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml");
+            	} else {
+            	//	systemsData.loadData(CONTEXT_URL + "/systems/monthly/" + year + "/" + month + ".xml");
+		        //	eventsData.loadData(CONTEXT_URL + "/events/monthly/" + year + "/" + month + ".xml");
+		        	devicesData.loadData(CONTEXT_URL + "/devices/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+            	}
+            }
+            
+            public function creationCompleteHandler(myChart:PieChart):void {
+				//var newMsg:TextField = myChart.getChildAt(myChart.numChildren-1) as TextField;
+				//newMsg.htmlText = "";
+			}
+		]]>
+	</mx:Script>
+	<mx:HBox width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
+		<mx:PieChart id="devicePie" 
+	        dataProvider="{devices}" 
+	        showDataTips="true" 
+	        height="100%" width="100%" innerRadius=".2" 
+	        creationComplete="creationCompleteHandler(this.devicePie)" >
+	        <mx:series>
+	           <mx:PieSeries 
+	                field="Amount" 
+	                nameField="Label" 
+	                labelPosition="none">
+	                <mx:showDataEffect>
+	                    <mx:SeriesInterpolate duration="1000" />
+	                </mx:showDataEffect>
+	           </mx:PieSeries>
+	        </mx:series>
+	     </mx:PieChart>
+    </mx:HBox>
+</mx:Canvas>

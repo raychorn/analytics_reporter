@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:head="com.mxplay.analytics.layout.*"
+	horizontalScrollPolicy="off" verticalScrollPolicy="off"
+    label="Application Usage"  
+	height="100%" width="100%">
+	<head:GlassHeaders headerTitle="APPLICATION USAGE" />
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.List;
+			import mx.controls.Alert;
+			import flash.events.Event;
+			import mx.rpc.events.ResultEvent;
+			import mx.collections.ArrayCollection;
+			import com.mxplay.analytics.util.AppXML;
+			
+			private const CONTEXT_URL:String = Settings.SiteUrl;
+			
+			[Bindable] public var dataRange:String = Settings.dataRange;
+			
+			//[Bindable] private var systemsData:AppXML = new AppXML();
+			[Bindable] private var eventsData:AppXML = new AppXML();
+			//[Bindable] private var devicesData:AppXML = new AppXML();
+		
+			[Bindable] var selection:String;
+			[Bindable] var year:String;
+			[Bindable] var month:String;
+			[Bindable] var day:String;
+						
+			[Bindable]
+		     public var browsers:ArrayCollection = new ArrayCollection([
+		        {Label:"Windows XP", Amount:0},
+		        {Label:"Windows Vista", Amount:0},
+		        {Label:"Windows 7", Amount:0}
+		     ]);
+		     
+		     [Bindable]
+		     public var devices:ArrayCollection = new ArrayCollection();
+		     
+		    public function dataRangeHandler(range:Object):void {
+				dataRange = range.data;
+				dateChangeHandler(Settings.dateSel);
+		    }
+		    
+		    public function dateChangeHandler(date:Date):void {
+		    	if (date == null) {
+	            	date = Settings.dateSel;
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	            	if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            } else {
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	                if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            }
+	            getData();
+		    }
+		    /* 
+		    private function updateSystems(event:Event):void {
+		    	var xp:Number = 0;
+		    	var vista:int = 0;
+		    	var win7:int = 0;
+            	for each (var prop:XML in systemsData.appXML.system)
+            	{
+            		if ( (prop.server_os).search("5.1") == 0 ){
+            			xp += parseInt(prop.server_count);
+            		}
+            		else if ( (prop.server_os).search("6.0") == 0 ){
+            			vista += parseInt(prop.server_count);
+            		}
+            		else if ( (prop.server_os).search("6.1") == 0 ){
+            			win7 += parseInt(prop.server_count);
+            		}
+            	}
+            	//Update Pie Chart
+            	browsers[0]["Amount"] = xp;
+            	browsers[1]["Amount"] = vista;
+            	browsers[2]["Amount"] = win7;
+            	//browserPie.dataProvider = browsers;
+            	//Update Application Usage Labels
+            	lblXp.label = xp.toString();
+            	lblVista.label = vista.toString();
+            	lblWin7.label = win7.toString();
+		    }
+		    */
+		    private function updateEvents(event:Event):void {
+		    	//Initialize Labels
+		    	lblUnique.label = "0";
+		    	lblEvent1.label = "0";
+		    	lblEvent2.label = "0";
+		    	lblEvent3.label = "0";
+		    	lblEvent4.label = "0";
+		    	lblEvent5.label = "0";
+		    	lblEvent6.label = "0";
+		    	lblEvent7.label = "0";
+		    	lblEvent8.label = "0";
+		    	lblEvent9.label = "0";
+		    	lblEvent10.label = "0";
+		    	for each (var prop:XML in eventsData.appXML.event)
+            	{
+            		if ( prop.server_event == 1 ){
+            			lblEvent1.label = (parseInt(lblEvent1.label) + parseInt(prop.server_count)).toString();
+            			lblUnique.label = (parseInt(lblUnique.label) + parseInt(prop.server_count)).toString();
+            		}
+            		else if ( prop.server_event == 2 ){
+            			lblEvent2.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 3 ){
+            			lblEvent3.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 4 ){
+            			lblEvent4.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 5 ){
+            			lblEvent5.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 6 ){
+            			lblEvent6.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 7 ){
+            			lblEvent7.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 8 ){
+            			lblEvent8.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 9 ){
+            			lblEvent9.label = prop.server_count;
+            		}
+            		else if ( prop.server_event == 10 ){
+            			lblEvent10.label = prop.server_count;
+            		}
+            	}
+		    }
+		    
+            public function getData():void {
+            	//Create Event Listeners
+            	//systemsData.addEventListener(Event.COMPLETE, updateSystems);
+            	eventsData.addEventListener(Event.COMPLETE, updateEvents);
+            	//devicesData.addEventListener(Event.COMPLETE, updateDevices);
+            	//Load Data/URL
+            	if (dataRange == "daily") {
+		        	//systemsData.loadData(CONTEXT_URL + "/systems/" + year + "/" + month + "/" + day + ".xml");
+		        	eventsData.loadData(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml");
+		        	//devicesData.loadData(CONTEXT_URL + "/devices/" + year + "/" + month + "/" + day + ".xml");
+            	} else {
+            		//systemsData.loadData(CONTEXT_URL + "/systems/monthly/" + year + "/" + month + ".xml");
+		        	eventsData.loadData(CONTEXT_URL + "/events/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+		        	//devicesData.loadData(CONTEXT_URL + "/devices/monthly/" + year + "/" + month + ".xml");
+            	}
+            }
+		]]>
+	</mx:Script>
+	<mx:Box top="30" width="100%" height="100%">
+		<mx:ApplicationControlBar height="5%" width="100%">
+		<mx:HBox>
+			<mx:RadioButton id="cbAppNumber" groupName="AppUsage" label="# Amount"
+			selected="true" click="" color="#0033CC"/>
+			<mx:RadioButton id="cbAppPercent" groupName="AppUsage" label="% Change" click=""
+			color="#009900"/>	
+			<mx:Label text="{selection}" fontWeight="bold" width="100%" textAlign="right" />
+		</mx:HBox>
+		</mx:ApplicationControlBar>	
+		<mx:HBox>
+			<mx:VBox>
+				<mx:Text text="User Information:" textDecoration="underline" />
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="Unique Users: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblUnique" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="Windows XP Users: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblXp" label="" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="Windows Vista Users: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblVista" label="" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="Windows 7 Users: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblWin7" label="" color="#0033CC" />
+				</mx:HBox>
+			</mx:VBox>
+			<mx:VBox>
+				<mx:Text text="Event Information (1-5):" textDecoration="underline" />
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="1. Launches: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent1" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="2. Playbacks: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent2" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="3. CD Rips: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent3" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="4. CD Burns: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent4" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="5. Downloads: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent5" label="0" color="#0033CC" />
+				</mx:HBox>
+			</mx:VBox>
+			<mx:VBox>
+				<mx:Text text="Event Information (6-10):" textDecoration="underline" />
+				
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="6. Total Transfers: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent6" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="7. Locker Transfers: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent7" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="8. Device Connections: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent8" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="9. Slide Show Plays: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent9" label="0" color="#0033CC" />
+				</mx:HBox>
+				<mx:HBox verticalAlign="top">
+					<mx:LinkButton label="10. Zoom Slides: " textAlign="left" width="160" />
+					<mx:LinkButton id="lblEvent10" label="0" color="#0033CC" />
+				</mx:HBox>
+			</mx:VBox>
+		</mx:HBox>
+	</mx:Box>
+</mx:Canvas>

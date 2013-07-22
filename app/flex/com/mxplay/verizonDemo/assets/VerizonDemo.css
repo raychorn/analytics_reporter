@@ -1,0 +1,18 @@
+/* CSS file */
+Label {
+    fontSize: 50;
+    fontWeight: bold;
+    paddingLeft: 0;
+    paddingTop: 0;
+    fontFamily: Arial;
+    text-align: center; 
+}
+
+CheckBox {
+    fontSize: 13;
+    fontWeight: bold;
+    paddingLeft: 0;
+    paddingTop: 0;
+    fontFamily: Arial;
+    text-align: center; 
+}

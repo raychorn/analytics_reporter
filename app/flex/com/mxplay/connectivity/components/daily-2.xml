@@ -1,0 +1,72 @@
+<records type="array"> 
+  <record> 
+    <id type="integer">3</id> 
+    <server_count type="integer">328</server_count> 
+    <server_date>2010-02-11</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">5969</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">12</id> 
+    <server_count type="integer">250</server_count> 
+    <server_date>2010-02-12</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">4962</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-13</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">7083</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-14</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">6010</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-15</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">5500</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-16</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">5800</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-17</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">6000</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-18</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">5000</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-19</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">7655</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">30</id> 
+    <server_count type="integer">247</server_count> 
+    <server_date>2010-02-20</server_date> 
+    <server_event type="integer">2</server_event> 
+    <server_total type="integer">5087</server_total> 
+  </record> 
+</records> 

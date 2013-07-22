@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:pom="com.mxplay.analytics.components.*" width="100%" height="100%" label="Application and Device Usage" >
+<mx:Style source="com/mxplay/analytics/assets/main.css"/>
+<mx:Script>
+	<![CDATA[
+		[Bindable] public var dataRangeLabel:String = "Day";
+		[Bindable] public var dataRange:String = "daily";
+		
+		public function dataRangeHandler(range:Object):void {
+				dataRangeLabel = range.label;
+				dataRange = range.data;
+				applicationUsage.dataRangeHandler(range);
+				pieBrowser.dataRangeHandler(range);
+				pieDevice.dataRangeHandler(range);
+	    }
+	]]>
+</mx:Script>
+
+	<mx:HDividedBox styleName="glassPods" width="100%" height="100%">
+		<mx:VDividedBox minWidth="620" width="750" height="100%">
+				<pom:ApplicationUsagePanel styleName="glassPanel" id="applicationUsage"  />
+				<pom:DevicesOverviewPanel styleName="opaquePanel" height="75%" id="devicesOverview" />
+		</mx:VDividedBox>
+		<mx:VDividedBox width="100%" height="100%">
+				<pom:PieBrowserPanel styleName="glassPods" height="50%" id="pieBrowser" />
+				<pom:PieDevicePanel styleName="glassPods" id="pieDevice" />
+		</mx:VDividedBox>
+	</mx:HDividedBox>
+</mx:Canvas>

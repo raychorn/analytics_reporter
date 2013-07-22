@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:pom="com.mxplay.analytics.components.*"
+	xmlns:local="com.mxplay.analytics.util.*"
+	paddingLeft="5"
+	paddingRight="5"
+	paddingTop="5"
+	paddingBottom="5"
+	width="100%"
+	height="100%">
+
+<mx:Script>
+	<![CDATA[
+		import mx.containers.ControlBar;
+        import mx.containers.Panel;
+        import mx.containers.VBox;
+        import mx.controls.Button;
+        import mx.controls.Label;
+        import mx.controls.Spacer;
+        import mx.controls.TextInput;
+        import mx.managers.PopUpManager;
+		
+		[Bindable]
+		public var user : XML;
+
+		// Event handler function for when Data Range (Month/Day) Changes
+		private function dataRangeHandler(range:Object):void{
+			Settings.dataRange = range.data;
+			applicationTab.dataRangeHandler(range);
+			applicationUsageTab.dataRangeHandler(range);
+		}
+		
+		// Event handler function for when Export is selected
+		private function dataExportHandler(export:Object):void{
+			Settings.exportType = export.data;
+			exportPopUp();
+		}
+		
+		// Event handler function for when Generate Report is selected
+		private function reportExportHandler(report:Object):void{
+			Settings.exportType = report.data;
+			exportPopUp();
+		}
+		
+		// Event handler function to write the selected
+        // date to the Label control.        
+        private function displayDate(date:Date):void {
+        	if (applicationUsageTab.applicationUsage) {
+            	applicationUsageTab.applicationUsage.dateChangeHandler(date);
+            	applicationUsageTab.devicesOverview.dateChangeHandler(date);
+            	applicationUsageTab.pieBrowser.dateChangeHandler(date);
+            	applicationUsageTab.pieDevice.dateChangeHandler(date);
+         	} 
+         	else if (locationOverviewPanel) {
+         		locationOverviewPanel.dateChangeHandler(date);
+         	}
+        }
+        
+        private function updateDate(event:Event):void
+		{
+			//Change Global Displays
+			Settings.displayedMonth = (dateRangeChooser.displayedMonth).toString();
+			Settings.displayedMonthLabel = dateRangeChooser.monthNames[dateRangeChooser.displayedMonth];			
+			if ( dateRangeChooser.selectedRanges && dateRangeChooser.selectedRanges.length > 0 )
+			{
+				var obj:Object = dateRangeChooser.selectedRanges[0];
+				//startDate.text = obj.rangeStart.toDateString();
+				//endDate.text = obj.rangeEnd.toDateString();
+				
+				//Change Global Date
+				Settings.dateSel = obj.rangeStart;
+				
+				if (applicationUsageTab.applicationUsage)
+				{
+	            	applicationUsageTab.applicationUsage.dateChangeHandler(obj.rangeStart);
+	            	applicationUsageTab.devicesOverview.dateChangeHandler(obj.rangeStart);
+	            	applicationUsageTab.pieBrowser.dateChangeHandler(obj.rangeStart);
+            		applicationUsageTab.pieDevice.dateChangeHandler(obj.rangeStart);
+	   			}
+	   			if (locationOverviewPanel) {
+	         		locationOverviewPanel.dateChangeHandler(obj.rangeStart);
+	         	}
+			} else {
+				if (applicationUsageTab.applicationUsage)
+				{
+	            	applicationUsageTab.applicationUsage.dateChangeHandler(Settings.dateSel);
+	            	applicationUsageTab.devicesOverview.dateChangeHandler(Settings.dateSel);
+	            	applicationUsageTab.pieBrowser.dateChangeHandler(Settings.dateSel);
+	            	applicationUsageTab.pieDevice.dateChangeHandler(Settings.dateSel);
+	   			}
+	   			if (locationOverviewPanel) {
+	         		locationOverviewPanel.dateChangeHandler(Settings.dateSel);
+	         	}
+			}
+		}
+        
+        private function exportPopUp():void {
+            var win:ExportDialog = PopUpManager.createPopUp(this, ExportDialog, true) as ExportDialog;
+            PopUpManager.centerPopUp(win);
+        }
+
+	]]>
+</mx:Script>
+
+	<mx:Model id="ranges">
+	  <ranges>
+	    <range label="Month" data="monthly"/>
+	    <range label="Day" data="daily"/>
+	  </ranges>
+	</mx:Model>
+	
+	<mx:Model id="exports">
+	  <exports>
+	    <export label="Excel Format" data="xls"/>
+	    <export label="CSV Format" data="csv"/>
+	  </exports>
+	</mx:Model>
+	
+	<mx:Model id="reports">
+	  <reports>
+	    <report label="PDF Document" data="pdf"/>
+	  </reports>
+	</mx:Model>
+	
+	<mx:Move id="hideEffect"
+    	xTo="-1000" />
+    <mx:Move id="showEffect"
+    	xFrom="1000" />
+
+	<mx:HBox width="100%" height="100%">
+		<mx:VBox width="200" height="100%">
+			<!-- <mx:Image source="com/mxplay/analytics/assets/smsi_logo.gif" horizontalAlign="center" width="200" /> -->
+			<!-- <mx:Spacer height="20" /> -->
+			<mx:Accordion width="200" height="200" backgroundAlpha=".4">
+				<mx:VBox width="100%" height="100%" label="Choose Data Range" backgroundAlpha=".4">
+					<mx:List id="dataRange" width="100%" backgroundAlpha=".4" color="0x0050AA" dataProvider="{ranges.range}" height="100%"
+		            	change="dataRangeHandler(List(event.target).selectedItem);" />
+				</mx:VBox>
+				<pom:PropertyBox id="propertyBox" />
+				<mx:VBox width="100%" height="100%" label="Export Data">
+					<mx:List id="dataExport" width="100%" backgroundAlpha=".4" color="0x0050AA" dataProvider="{exports.export}" height="100%"
+		            	itemClick="dataExportHandler(List(event.target).selectedItem);" />
+				</mx:VBox>
+				<mx:VBox width="100%" height="100%" label="Generate Report">
+					<mx:List id="reportExport" width="100%" backgroundAlpha=".4" color="0x0050AA" dataProvider="{reports.report}" height="100%"
+		            	itemClick="reportExportHandler(List(event.target).selectedItem);" />
+				</mx:VBox>
+			</mx:Accordion>
+			<!--<mx:DateChooser id="dateChooser" width="200" change="displayDate(DateChooser(event.target).selectedDate)"
+				 creationComplete="displayDate(DateChooser(event.target).selectedDate)" />-->
+			<local:DatePeriodChooser id="dateRangeChooser" backgroundAlpha=".4" width="200" scroll="updateDate(event);" change="updateDate(event)" />
+			<!-- <mx:Text width="200" htmlText="Hold down the mouse button on a date and move the mouse to select a range." /> -->
+			<mx:Label width="200" text="{'Logged in as: ' + user.login + ' (' + user.email + ')'}" />
+			<mx:Label text="{'Welcome back ' + user.first_name + '!'}" />
+		</mx:VBox>
+		 <mx:TabNavigator width="100%" height="100%" styleName="glassPods">
+		 	<pom:ApplicationBox id="applicationTab" width="100%" hideEffect="{hideEffect}" showEffect="{showEffect}" />
+		 	<pom:ApplicationUsageBox width="100%" id="applicationUsageTab" hideEffect="{hideEffect}" showEffect="{showEffect}" creationComplete="displayDate(dateRangeChooser.selectedDate)" />
+		 	<pom:LocationOverviewPanel id="locationOverviewPanel" hideEffect="{hideEffect}" showEffect="{showEffect}" creationComplete="displayDate(dateRangeChooser.selectedDate)" />
+		 </mx:TabNavigator>
+	</mx:HBox>
+
+</mx:HBox>

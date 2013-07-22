@@ -1,0 +1,42 @@
+ <events type="array">
+	<event>
+		<label>Novatel U760</label>
+		<amount>10</amount>
+	</event>
+ 	<event>
+		<label>Novatel U520</label>
+		<amount>10</amount>
+	</event>
+	<event>
+		<label>Huawei E169</label>
+		<amount>10</amount>
+	</event>
+	<event>
+		<label>Kyocera KP650</label>
+		<amount>10</amount>
+	</event>
+	<event>
+		<label>Novatel C201</label>
+		<amount>10</amount>
+	</event>
+ 	<event>
+		<label>ZTE MZ10</label>
+		<amount>10</amount>
+	</event>
+	<event>
+		<label>ZTE MF630</label>
+		<amount>5</amount>
+	</event>
+	<event>
+		<label>Ericsson GC 79</label>
+		<amount>5</amount>
+	</event>
+	<event>
+		<label>Sierra Aircard 875u</label>
+		<amount>8</amount>
+	</event>
+	<event>
+		<label>Sierra ircard 750</label>
+		<amount>22</amount>
+	</event>
+</events>

@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Used to specify the pod content in the dashboard sample app.
+To keep the implementation straightforward, all of the data is
+stored in this file rather than a database or separate XML files.
+-->
+<views>
+	<!--
+		<view> - Represents a tab.
+			id - Must be unique so state can be saved properly.
+			label - The label of the tab.
+			<pod>
+				id - Must be unique per view so state can be saved properly.
+				type - Type of pod content. Valid values are chart, pieChart, form and list. "chart" and "pieChart" each have drill downs to one level.
+					   "chart" is a fixed drill down to 30 days in a month.
+					   "pieChart" is a fixed drill down to four geographical regions.
+				title - The title of the pod.
+				containers - The number of "canvases" you want in a View for seperate pod sizes
+				percentWidth - A comma seperated list of widths for the containers respectively
+				percentHeight - A comma seperated list of heigths for the containers respectively
+				dataSource - The xml to load for the pod.
+				selectedViewIndex - Sets the default content view for pod content with a view stack. 
+				valueField - For chart pods, the field from the xml data to use for displaying the value. This field should be numeric.
+				categoryField - For chart pods, the field from the xml data to use for displaying the category.
+				dataTipUnitLabel - Rollover label used for displaying the units.
+								   Label is delimited by "*" and places the first value before the unit and the second value after the unit. Ex: $50M.
+				dataTipLabelField - Rollover label field used for PieCharts.
+				labels - For form pods, used to label the fields.
+				dataFields - For form pods, used to assign the data fields to the form fields.
+							 The second field should always be a date expressed in milliseconds since the epoch.
+	-->
+	<view
+		id="view0"
+		label="Dashboard"
+		containers="1"
+		percentWidth="100"
+		percentHeight="100">
+		<pod
+			id="pod01"
+			type="chart"
+			title="Successful Connections - WWAN"
+			defaultContainer="1"
+			dataSource="/connections/connectivity/daily.xml?type=wwan"
+			selectedViewIndex="1"
+			valueField="view_count"
+			categoryField="server_date"
+			dataTipUnitLabel="* Connections"
+			dataTipLabelField="server_date"/>
+		<pod
+			id="pod02"
+			type="grid"
+			title="WWAN Connection Drops by Top 10 Device"
+			defaultContainer="1"
+			dataSource="/devices/connectivity/daily.xml?"
+			selectedViewIndex="0" 
+			labels="Device MFG, Device Model, Total # of Model, Drop Rating"
+			dataFields="server_make,server_model,view_count,avg_raiting" />
+		<pod
+			id="pod03"
+			type="stackedBar"
+			title="WWAN MB Usage by Subscriber Population"
+			defaultContainer="1"
+			dataSource="/usages/connectivity/daily.xml?"
+			selectedViewIndex="0" 
+			xField = "server_usage"
+			yField = "G4,G3"
+			displayName = "4G,3G"/>
+		<pod
+			id="pod04"
+			type="chart"
+			title="Successful Connections - WiFi"
+			defaultContainer="1"
+			dataSource="/connections/connectivity/daily.xml?type=wifi"
+			selectedViewIndex="1"
+			valueField="view_count"
+			categoryField="server_date"
+			dataTipUnitLabel="*M"
+			dataTipLabelField="server_date"/>
+		<pod
+			id="pod05"
+			type="form"
+			title="To Do"
+			defaultContainer="1"
+			dataSource="/bin/com/mxplay/connectivity/components/tasks.xml"
+			labels="Name,Date,Description"
+			dataFields="name,date,description" />
+		<pod
+			id="pod06"
+			type="pieChart2"
+			title="Data Usage by WWAN Device"
+			defaultContainer="1"
+			dataSource="/bin/com/mxplay/connectivity/components/pie-test-data1.xml" />
+		<pod
+			id="pod07"
+			type="pieChart"
+			title="Data Usage by OS"
+			defaultContainer="1"
+			dataSource="/bin/com/mxplay/connectivity/components/revenue_by_region2.xml?"
+			valueField="value"
+			categoryField="region"
+			dataTipUnitLabel="*M"
+			dataTipLabelField="region"/>
+		<pod
+			id="pod08"
+			type="grid"
+			title="Top 5 Connection Errors"
+			defaultContainer="1"
+			dataSource="/bin/com/mxplay/connectivity/components/dataGridErrorCodes.xml?"
+			selectedViewIndex="0" 
+			labels="Error Code,Error Message,QTY, Percent"
+			dataFields="errCode,errMsg,qty,percent" />	
+	</view>
+	<view
+		id="view1"
+		label="Connection Reports"
+		layout="vertical"
+		containers="2"
+		percentWidth="35,65"
+		percentHeight="100,100">
+		<pod
+			id="pod11"
+			type="checkedBoxLineChart"
+			title=""
+			defaultContainer="2"
+						
+			dataSource="/events/connectivity/daily/2.xml?"
+			selectedViewIndex="0" 
+			
+			checkBoxLabels="Successful WWAN Connections,Dropped WWAN Connections,WWAN Connects w/h VPN,Successful WiFi Connections" 
+			dataUrls="/events/connectivity/daily/2.xml?,/events/connectivity/daily/3.xml?,/events/connectivity/daily/4.xml?,/events/connectivity/daily/6.xml?" />
+		<pod
+			id="pod12"
+			type="grid"
+			title="WWAN Connection Drops by Top 10 Device"
+			defaultContainer="1"
+			dataSource="/devices/connectivity/daily.xml?"
+			selectedViewIndex="0" 
+			labels="Device MFG, Device Model, Total # of Model, Drop Rating"
+			dataFields="server_make,server_model,view_count,avg_raiting" />
+		<pod
+			id="pod13"
+			type="chart"
+			title="Successful Connections - WWAN"
+			defaultContainer="1"
+			dataSource="/connections/connectivity/daily.xml?type=wwan"
+			selectedViewIndex="1"
+			valueField="view_count"
+			categoryField="server_date"
+			dataTipUnitLabel="*M"
+			dataTipLabelField="server_date"/>
+		<pod
+			id="pod14"
+			type="chart"
+			title="Successful Connections - WiFi"
+			defaultContainer="1"
+			dataSource="/connections/connectivity/daily.xml?type=wifi"
+			selectedViewIndex="1"
+			valueField="view_count"
+			categoryField="server_date"
+			dataTipUnitLabel="*M"
+			dataTipLabelField="server_date"/>
+		<pod
+			id="pod15"
+			type="grid"
+			title="Top 5 Connection Errors"
+			defaultContainer="1"
+			dataSource="/bin/com/mxplay/connectivity/components/dataGridErrorCodes.xml?"
+			selectedViewIndex="0" 
+			labels="Error Code,Error Message,QTY, Percent"
+			dataFields="errCode,errMsg,qty,percent" />	
+	</view>
+	<view
+		id="view2"
+		label="Data Volume Reports"
+		containers="2"
+		layout="vertical"
+		percentWidth="60,40"
+		percentHeight="100,100">
+		<pod
+			id="pod21"
+			type="stackedBar"
+			title="WWAN MB Usage by Subscriber Population"
+			defaultContainer="1"
+			dataSource="/usages/connectivity/daily.xml?"
+			selectedViewIndex="0" 
+			xField = "server_usage"
+			yField = "G4,G3"
+			displayName = "4G,3G"/>
+		<pod
+			id="pod22"
+			type="pieChart"
+			title="Data Usage by OS"
+			defaultContainer="2"
+			dataSource="/bin/com/mxplay/connectivity/components/revenue_by_region2.xml?"
+			valueField="value"
+			categoryField="region"
+			dataTipUnitLabel="*M"
+			dataTipLabelField="region"/>
+		<pod
+			id="pod23"
+			type="pieChart2"
+			defaultContainer="2"
+			title="Data Usage by WWAN Device"
+			dataSource="/bin/com/mxplay/connectivity/components/pie-test-data1.xml" />
+	</view>
+	<view
+		id="view3"
+		label="Application Usage Reports"
+		containers="1"
+		percentWidth="100"
+		percentHeight="100">
+		<pod
+			id="pod31"
+			type="checkedBoxLineChart"
+			defaultContainer="1"
+			title="Application Activity"
+						
+			dataSource="/events/connectivity/daily/2.xml?"
+			selectedViewIndex="0" 
+			
+			checkBoxLabels="Profiles Used,Wi-Fi Profiles Used,VPN Auto Launch,Application Auto Launch" 
+			dataUrls="/events/connectivity/daily/6.xml?,/events/connectivity/daily/7.xml?,/events/connectivity/daily/4.xml?,/events/connectivity/daily/1.xml?"
+			/>
+	</view>
+	<view
+		id="view2"
+		label="Service Levels by Location"
+		containers="1"
+		percentWidth="100"
+		percentHeight="160">
+		<pod
+			id="pod41"
+			type="yahooMap"
+			title="Service Levels"
+			defaultContainer="1"
+			dataSource="/bin/com/mxplay/connectivity/components/pie-test-data1.xml" />
+	</view>
+</views>

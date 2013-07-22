@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Displays a PieChart with drill-down functionality.
+ For the demo, random data is generated for the drill-down.
+-->
+<PodContentBase
+	xmlns="com.mxplay.analytics.dashboard.view.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:effects="qs.charts.effects.*"
+	xmlns:renderers="qs.charts.renderers.*"
+	width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import mx.charts.events.ChartItemEvent;
+			import mx.charts.HitData;
+			import mx.charts.series.items.PieSeriesItem;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			
+			import com.mxplay.analytics.events.DateChangeEvent;
+			
+			// The original data provider used for drillUp.
+			private var initialDataProvider:ArrayCollection;
+			[Bindable]
+			private var dataProvider:ArrayCollection;
+			
+			// Chart drill down variables. Users can only drill down
+			// one level then click the chart to drill up.
+			// Note, the majority of the drill down code including all of the classes in the "qs" package
+			// are from Ely Greenfield's blog, http://www.quietlyscheming.com/blog/charts/chart-drilldown-animations/.
+			private var drillToIndex:Number;
+			
+			override protected function onResultHttpService(e:ResultEvent):void
+			{
+				//DateChange Event Listener 
+				mx.core.Application.application.addEventListener(DateChangeEvent.DATECHANGE, dateChangeHandler);
+				
+				var a:Array = xmlListToObjectArray(e.result.record);
+				var ac:ArrayCollection = new ArrayCollection(a);
+				initialDataProvider = ac;
+				dataProvider = ac;
+				
+				//pieChart.addEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+			}
+			
+			public function dateChangeHandler(e:DateChangeEvent):void {
+				onDateChange(e.startdate, e.enddate);
+			}
+			
+			private function pieChartDataTipFunction(o:HitData):String
+			{
+				var a:Array = properties.@dataTipUnitLabel.split("*");
+				var s:String = o.item[properties.@dataTipLabelField] + "\n";
+				s += a[0] + o.item[properties.@valueField] + a[1] + "\n";
+				s += Math.round(PieSeriesItem(o.chartItem).percentValue) + "%";
+				return s;
+			}
+			
+			// Creates random drill down data.
+			// Assumes initial data is by geographical region and breaks down the region into sub-regions.
+			public function createDrillDownData(data:Object):ArrayCollection
+			{
+				var ac:ArrayCollection = new ArrayCollection();
+				var total:Number = data[properties.@valueField];
+				var regions:Array;
+				
+				if (data.region == "Windows")
+					regions = ["XP", "Vista", "Win7"];
+				else if (data.region == "Mac")
+					regions = ["10.6", "10.5.7", "10.4", "10.0"];
+				else if (data.region == "Unix")
+					regions = ["Ubuntu", "Gentoo", "Unknown"];
+				else if (data.region == "Other")
+					regions = ["iPhone", "Droid", "Blackberry", "Palm Pre"];
+				
+				var len:Number = regions.length;
+				var randomPercents:Array = new Array();
+				var totalPercents:Number = 0;
+				var value:Number;
+				// Generate an Array of random numbers that will be used to create percentages of the totals in the next loop.
+				for (var i:Number = 0; i < len; i ++)
+				{
+					value = Math.max(.1, Math.random());// Make sure the number is not zero.
+					randomPercents.push(value);
+					totalPercents += value;
+				}
+				
+				for (i = 0; i < len; i ++)
+				{
+					var o:Object = new Object();
+					value = (randomPercents[i] / totalPercents) * total;
+					o[properties.@valueField] = Math.round(value * 10) / 10;
+					o[properties.@categoryField] = regions[i];
+					ac.addItem(o);
+				}
+				
+				return ac;
+			}
+			
+			public function drillDown(e:ChartItemEvent):void
+			{
+				pieChart.showDataTips = false;
+				drillToIndex = e.hitData.chartItem.index
+				drillDownEffect.drillFromIndex = drillToIndex;
+				pieSeries.setStyle("showDataEffect", drillDownEffect);
+				dataProvider = createDrillDownData(Object(e.hitData.chartItem.item)); 
+				
+				pieChart.removeEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				pieChart.addEventListener(MouseEvent.CLICK, drillUp);
+			}
+			
+			public function drillUp(e:MouseEvent):void
+			{
+				pieChart.showDataTips = false;
+				drillUpEffect.drillToIndex = drillToIndex;
+				pieSeries.setStyle("showDataEffect", drillUpEffect);
+				dataProvider = initialDataProvider; 
+				
+				pieChart.addEventListener(ChartItemEvent.ITEM_CLICK, drillDown);
+				pieChart.removeEventListener(MouseEvent.CLICK, drillUp);
+			}
+			
+			private function pieSeries_labelFunc(item:Object, field:String, index:Number, percentValue:Number):String {
+                return item.region + ": " + item.value + " (" + percentValue.toFixed(2) + "%)";
+            }
+			
+		]]>
+	</mx:Script>
+	
+	<effects:DrillDownEffect id="drillDownEffect" duration="1500" effectEnd="pieChart.showDataTips=true" />
+    <effects:DrillUpEffect id="drillUpEffect" duration="1500" effectEnd="pieChart.showDataTips=true"/>
+	<mx:Array id="labelPositionArr">
+        <mx:Object label="none" />
+        <mx:Object label="inside" />
+        <mx:Object label="insideWithCallout" />
+        <mx:Object label="callout" />
+        <mx:Object label="outside" />
+    </mx:Array>
+	<mx:PieChart
+		id="pieChart"
+		width="100%" height="100%"
+		dataProvider="{dataProvider}"
+		dataTipFunction="pieChartDataTipFunction"
+		showDataTips="true"
+		innerRadius=".2">
+		<mx:series>
+			<mx:PieSeries
+				id="pieSeries"
+				field="{properties.@valueField}"
+				labelPosition="{comboBox.selectedItem.label}"
+				labelFunction="pieSeries_labelFunc">
+				<mx:itemRenderer>
+					<mx:Component>
+						<renderers:RollOverWedgeItemRenderer />
+					</mx:Component>
+				</mx:itemRenderer>
+				<mx:calloutStroke>
+                    <mx:Stroke color="gray"
+                            weight="2"
+                            caps="none" />
+                </mx:calloutStroke>
+                <mx:showDataEffect>
+                    <mx:SeriesInterpolate duration="1000" />
+                </mx:showDataEffect>
+                <!--<mx:fills>
+                <mx:SolidColor color="0x9966CC" alpha=".8"/>
+                <mx:SolidColor color="0x9999CC" alpha=".8"/>
+                <mx:SolidColor color="0x6699CC" alpha=".8"/>
+                <mx:SolidColor color="0x669999" alpha=".8"/>
+                <mx:SolidColor color="0x99CC99" alpha=".8"/>
+            	</mx:fills>-->
+			</mx:PieSeries>
+		</mx:series>
+	</mx:PieChart>
+	<mx:HBox
+		width="100%"
+		horizontalAlign="right">
+		<mx:ComboBox id="comboBox"
+			dataProvider="{labelPositionArr}"/>
+	</mx:HBox>
+</PodContentBase>

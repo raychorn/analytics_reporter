@@ -1,0 +1,18 @@
+ <events type="array">
+	<event>
+		<label>Windows XP</label>
+		<amount>20</amount>
+	</event>
+ 	<event>
+		<label>Windows Vista</label>
+		<amount>65</amount>
+	</event>
+	<event>
+		<label>Windows 7</label>
+		<amount>12</amount>
+	</event>
+	<event>
+		<label>Mac</label>
+		<amount>10.5</amount>
+	</event>
+</events>

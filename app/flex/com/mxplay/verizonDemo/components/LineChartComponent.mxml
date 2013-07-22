@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+			borderStyle="solid" borderColor="gray" backgroundColor="white" width="100%" height="100%" creationComplete="loadUrl(_dataGridUrl)" > <!-- creationComplete="connReq.send()">-->
+		<mx:Script>
+		<![CDATA[
+			import com.mxplay.analytics.util.AppXML;
+			import mx.collections.ArrayCollection;
+	     	import mx.rpc.events.ResultEvent;
+	     	import mx.rpc.http.HTTPService;
+	     	import mx.controls.Alert;
+	  			
+			[Inspectable(defaultValue="http://localhost:3000/bin/test-data1.xml")] private var _dataGridUrl:String;
+			[Inspectable(defaultValue="display name")] private var _displayName:String;
+			[Inspectable(defaultValue="_xField")]private var _xField:String;
+			[Inspectable(defaultValue="_yField")]private var _yField:String;	
+			[Bindable] private var lineChartData:ArrayCollection;	
+			//[Bindable] private var lineChartData:AppXML;
+				
+			public function set dataGridUrl (context:String):void 
+            {	
+				_dataGridUrl = context;
+            }
+            
+            public function get dataGridUrl():String 
+            {
+                return _dataGridUrl;
+            }  
+            
+            public function set displayName (context:String):void 
+            {	
+				_displayName = context;
+            }
+            
+            public function get displayName():String 
+            {
+                return _displayName;
+            }  
+            
+            public function set xField (context:String):void 
+            {	
+				_xField = context;
+            }
+            
+            public function get xField():String 
+            {
+                return _xField;
+            }      
+            
+            public function set yField (context:String):void 
+            {	
+				_yField = context;
+            }
+            
+            public function get yField():String 
+            {
+                return _yField;
+            }        
+            /*
+            private function dataReqHandler(event:ResultEvent):void {
+				//lineChartData = event.result.events.event;
+				lineChartData = event.result.event;
+			}
+			*/
+			
+			public function loadUrl(url:String):void {
+				
+            	var req:HTTPService = new HTTPService();          	
+            	req.url = url;
+            	req.addEventListener(ResultEvent.RESULT, dataReqHandler);
+            	req.send();
+            	//dispatchEvent( new Event(Event.CHANGE, true));
+            }
+            
+             private function dataReqHandler(event:ResultEvent):void {
+             	//Alert.show(event.toString(), "Error");
+				//loadUrl(_dataGridUrl);
+				lineChartData = event.result.items.item;
+				//lineChartData = event.result.event;
+			}
+		]]>
+	</mx:Script>
+	<!--<mx:HTTPService id="connReq" url= "{_dataGridUrl}" result="dataReqHandler(event);" resultFormat="e4x"/>-->
+	<mx:Box width="100%" height="100%">
+		<mx:LineChart id="wifiSucConn" dataProvider="{lineChartData}" width="100%" height="100%">
+				<mx:horizontalAxis>
+					<mx:CategoryAxis dataProvider="{lineChartData}" categoryField="{_xField}"/>
+				</mx:horizontalAxis>
+				<mx:series>
+					<mx:LineSeries xField="{_xField}" yField="{_yField}" displayName="{_displayName}" />
+				</mx:series>	
+		</mx:LineChart>
+		<mx:Legend dataProvider="{wifiSucConn}" x="316" y="30"/>
+	</mx:Box>
+</mx:Canvas>

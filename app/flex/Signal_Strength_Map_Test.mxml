@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:head="com.mxplay.analytics.layout.*" 
+	xmlns:pom="com.mxplay.analytics.components.*" layout="absolute">
+	<mx:Style source="com/mxplay/analytics/assets/main.css"/>
+	<mx:Script>
+        <![CDATA[
+        	import mx.utils.URLUtil;
+        	import com.mxplay.analytics.util.AppXML;
+        	import com.mxplay.analytics.util.CustomIconMarker2;
+        	import com.mxplay.analytics.util.CustomMarker;
+        	import mx.collections.ArrayCollection;
+            import mx.effects.easing.Cubic;
+            import com.yahoo.maps.api.markers.SimpleMarker;
+            import mx.controls.Alert;
+            import mx.managers.CursorManager;
+            import mx.rpc.events.FaultEvent;
+            import mx.rpc.events.ResultEvent;
+            import com.yahoo.maps.api.overlays.CircleOverlay;
+            import mx.events.ResizeEvent;
+
+            import com.yahoo.maps.api.YahooMap;
+            import com.yahoo.maps.api.YahooMapEvent;
+            import com.yahoo.maps.api.core.location.Address;
+            import com.yahoo.maps.api.core.location.LatLon;
+            import com.yahoo.maps.api.utils.Distance;
+            import com.yahoo.maps.api.overlays.CircleOverlay;
+            import com.yahoo.maps.webservices.geocoder.GeocoderResult;
+            import com.yahoo.maps.webservices.geocoder.GeocoderResultSet;
+            import com.yahoo.maps.webservices.geocoder.events.GeocoderEvent;
+            import com.yahoo.maps.webservices.geocoder.Geocoder;
+            import com.yahoo.maps.webservices.local.LocalSearchItem;
+            import com.yahoo.maps.api.markers.SearchMarker;
+            
+            import com.yahoo.maps.api.overlays.PolylineOverlay;
+            
+            import flash.external.*;
+            
+            //Settings.SiteUrl = "http://" + mx.utils.URLUtil.getServerNameWithPort(Application.application.url);
+            private var CONTEXT_URL:String = Settings.SiteUrl;
+            //Alert.show('url','url');
+            //GLOBAL REMOVE LATER
+            Settings.dataConnection = "connectivity";
+			
+            [Bindable] private var ipData:AppXML;
+            [Bindable] private var signalData:AppXML = new AppXML();
+            [Bindable] public var geoInfo:ArrayCollection = new ArrayCollection();
+            
+            [Bindable] public var dataRange:String = Settings.dataRange;
+            [Bindable] var selection:String;
+			[Bindable] var year:String = "2010";
+			[Bindable] var month:String = "03";
+			[Bindable] var day:String = "01";
+
+            // out map
+            private var _yahooMap:YahooMap;
+            // our custom marker
+            private var _yahooMarker:CustomIconMarker2;
+            private var _geocoder:Geocoder;
+            private var _centerAddress:Address;
+            private var _addressToFind:Address; 
+            private var _centerMarker:SimpleMarker = null;
+            private var _searchMarkers:Array = null;
+            private var _circleOverlay:CircleOverlay = null;
+            private var _drivingOverlay:PolylineOverlay = null;
+            [Bindable]
+            private var _centerAddressStr:String= "";
+            private var isYahooMapAdded:Boolean = false;
+            
+            public function dataRangeHandler(range:Object):void {
+				dataRange = range.data;
+				dateChangeHandler(Settings.dateSel);
+		    }
+		    
+		    public function dateChangeHandler(date:Date):void {
+		    	if (date == null) {
+	            	date = Settings.dateSel;
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	            	if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            } else {
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	                if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            }
+                _yahooMap.markerManager.removeAllMarkers();
+	            geoInfo.removeAll();
+	            geoInfo.refresh();
+	            //gc.refresh();
+	            //doGeolocateIP();
+		    }
+            
+            public function creationCompleteHandler(event:Event):void{
+                //getIPHTTPService.send();
+                //getIPLocation.url = CONTEXT_URL + "/geoip";
+                Settings.SiteUrl = "http://" + mx.utils.URLUtil.getServerNameWithPort(Application.application.url);
+                CONTEXT_URL = Settings.SiteUrl;
+                //Alert.show(CONTEXT_URL,'url');
+                ExternalInterface.addCallback("createDriveTimePoly",createDriveTimePoly);
+                addYahooMap();
+            }
+            
+            private function addYahooMap():void{
+                if (isYahooMapAdded){
+                    return;
+                } else {
+                    isYahooMapAdded = true;
+                }
+                var appid:String = "u9geeRbV34FZbJMpJ2ty8sf0tW7B22eRq8BTDZmBMAJ_ScrOGmpkA.ycAybDxxA-";        
+                
+                _yahooMap = new YahooMap();
+                _yahooMap.addEventListener(YahooMapEvent.MAP_INITIALIZE, handleMapInitialize);
+                _yahooMap.init(appid, mapContainer.width, mapContainer.height);
+                _yahooMap.addPanControl();
+                _yahooMap.addScaleBar();
+                _yahooMap.addZoomWidget();
+                _yahooMap.addTypeWidget();
+                _yahooMap.addCrosshair();
+                
+                 // create new Geocoder and listen for its GEOCODER_SUCCESS event.
+                _geocoder = new Geocoder();
+                _geocoder.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleInitialGeocodeSuccess);
+                
+                // add event listener for Map_Click
+                _yahooMap.addEventListener(YahooMapEvent.MAP_CLICK, handleMapClick);
+                
+                mapContainer.addEventListener(ResizeEvent.RESIZE, handleContainerResize);
+
+
+
+                mapContainer.addChild(_yahooMap);
+
+                        
+            }
+            
+            private function handleMapInitialize(e:Event):void{
+            	//Center of US: 38,-97 //World: 34,-58
+                var lyonLatLon:LatLon = new LatLon(40,-105);
+                centerYahooMap(lyonLatLon, 13);
+            }
+            
+            private function handleContainerResize(event:ResizeEvent):void{
+                // set the width and height of the map based on the container UIComponent size.
+                _yahooMap.setSize( mapContainer.width, mapContainer.height);
+            }
+
+            private function addCenterMarker(loc:LatLon):void {
+                _centerMarker = new SimpleMarker();
+                _centerMarker.latlon = loc;
+                _yahooMap.markerManager.addMarker(_centerMarker);
+                _yahooMap.centerLatLon = loc;
+                
+            }
+            
+            private function handleMapClick(event:YahooMapEvent):void {
+                clearMapItems();
+                addCenterMarker(event.data.latlon);
+                
+                _geocoder = new Geocoder();
+                _geocoder.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleReverseGeocoding);
+                _geocoder.reverseGeocode(_centerMarker.latlon);
+
+            }
+            
+            private function handleReverseGeocoding(event:GeocoderEvent):void {
+                var resultSet:GeocoderResultSet = event.data as GeocoderResultSet;
+                var firstResult:GeocoderResult = resultSet.firstResult;
+                
+                _yahooMap.zoomLevel = firstResult.zoomLevel+3; 
+                //mapBox.status = firstResult.getLineAddress();
+                address.text  = firstResult.getLineAddress();
+            }
+            
+            private function centerYahooMap(_latLon:LatLon, zoom:Number = 10):void{
+                
+                _yahooMap.centerLatLon = _latLon;
+                
+                _yahooMap.zoomLevel = zoom;
+                
+                _geocoder.reverseGeocode(_yahooMap.centerLatLon);                
+            }
+            
+            private function handleFind():void {
+                this.clearMapItems();
+                
+                if (_centerMarker != null){
+                    searchAndShow(_centerMarker.latlon);
+                }
+                else if (this.address.text != "") {
+                    _addressToFind = new Address(address.text); 
+                    _addressToFind.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleGeocodeSuccess);
+                    _addressToFind.geocode(); 
+                }
+                else {
+                    Alert.show('Need either type in address or click map to locate a point.', 'Missing Input', mx.controls.Alert.OK);
+                }
+            }
+
+            
+            private function handleInitialGeocodeSuccess(event:GeocoderEvent):void {
+                // get the GeocoderResultSet containing each result returned by the geocoder.
+                var resultSet:GeocoderResultSet = event.data as GeocoderResultSet;
+                
+                // grab the first (highest-quality) result.
+                var firstResult:GeocoderResult = resultSet.firstResult;
+                
+                // get the full address string of the result.
+                _centerAddressStr = firstResult.getLineAddress();
+            }
+            
+            private function handleGeocodeSuccess(event:GeocoderEvent):void {
+                var result:GeocoderResult = _addressToFind.geocoderResultSet.firstResult;
+                
+                // get the full address string of the result.
+                _centerAddressStr = result.getLineAddress();
+                _yahooMap.zoomLevel = result.zoomLevel+3; 
+                addCenterMarker(result.latlon);
+                searchAndShow(result.latlon);
+            }
+            
+            private function searchAndShow(loc:LatLon):void {
+            	drawCircle(_yahooMap.centerLatLon, Number(this.withinMiles.value));
+            	var m:String = ExternalInterface.call("getDriveTimePoly", 
+                                                      _yahooMap.centerLatLon.lat.toString(), 
+                                                      _yahooMap.centerLatLon.lon.toString(), 
+                                                      this.driveTime.value);
+            	signalData.addEventListener(Event.COMPLETE, handleSignalDataComplete);
+            	if (dataRange == "daily") {
+		        	signalData.loadData(CONTEXT_URL + "/signal_strengths/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml?lat=" + loc.lat.toString() + "&lng=" + loc.lon.toString() + "&startsignal=" + signalStrength.values[0] + "&endsignal=" + signalStrength.values[1] + "&radius=" + withinMiles.value);
+            		//Alert.show(CONTEXT_URL + "/signal_strengths/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml?lat=" + loc.lat.toString() + "&lng=" + loc.lon.toString() + "&startsignal=" + signalStrength.values[0] + "&endsignal=" + signalStrength.values[1] + "&radius=" + withinMiles.value,'test');
+            	} else {
+            		signalData.loadData(CONTEXT_URL + "/signal_strengths/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+            	}
+            }
+            
+            private function handleSignalDataComplete(event:Event):void {
+            	//Excellent: 100%-76% - BLUE
+            	//Good: 75%-51% - GREEN
+            	//Fair: 50%-26% - YELLOW
+            	//Poor: 25%-1% - GREY
+            	_searchMarkers = new Array();
+                
+                var IconUrl:String;
+                var blueIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-blue-icon.png";
+                var greenIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-green-icon.png";
+                var yellowIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-yellow-icon.png";
+                var greyIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-grey-icon.png";
+                var title:String;
+                var summary:String;
+                var locallatlon:LatLon;
+                var bgColor:uint;
+                var i:int=0;
+                for each (var prop:XML in signalData.appXML.signal_strength)
+                {
+                	// latlon
+                	locallatlon = new LatLon(prop.lat,prop.lng);
+                	// title
+                	if (prop.server_signal > 75)
+                	{
+                		title = "Signal Strength: EXCELLENT (" + prop.server_date + ")";
+                		IconUrl = blueIconUrl;
+                		bgColor = 0x0033ff;
+                	}
+                	else if (prop.server_signal <= 75 && prop.server_signal >= 51)
+                	{
+                		title = "Signal Strength: GOOD (" + prop.server_date + ")";
+                		IconUrl = greenIconUrl;
+                		bgColor = 0x66ff66;
+                	}
+                	else if (prop.server_signal <= 50 && prop.server_signal >= 26)
+                	{
+                		title = "Signal Strength: FAIR (" + prop.server_date + ")";
+                		IconUrl = yellowIconUrl;
+                		bgColor = 0xffff00;
+                	}
+                	else
+                	{
+                		title = "Signal Strength: POOR (" + prop.server_date + ")";
+                		IconUrl = greyIconUrl;
+                		bgColor = 0x26333b;
+                	}
+                	// summary
+                	summary = "Actual Signal Strength: "+ prop.server_signal + "%";
+                	// creating xmlItem for local search item
+                	var str:String = "<listing><title>"+title+"</title><zip>"+prop.zip+"</zip><city>"+prop.city+"</city><state>"+prop.state+"</state></listing>";
+                	var xmlItem:XML = new XML(str);
+                    // creating a new local search item
+	                var myLocalSearchItem:LocalSearchItem = 
+	                    new LocalSearchItem(xmlItem);
+                    _yahooMarker = new CustomIconMarker2(locallatlon, myLocalSearchItem, bgColor, 0xFFFFFF, 0x000000, summary, IconUrl);
+                    
+                    _yahooMap.markerManager.addMarker(_yahooMarker);
+                    _searchMarkers[i] = _yahooMarker;    
+                    i++;
+                }
+                /*var str:String = "<listing><title>tittle</title><addr>Str. Florica, nr. 26, sector 5</addr><city>Bucuresti</city><state>Bucuresti</state></listing>";
+            	var xmlItem:XML = new XML(str);
+            	
+                // creating a new local search item
+                var myLocalSearchItem:LocalSearchItem = 
+                    new LocalSearchItem(xmlItem);
+                //var marker:SearchMarker = new SearchMarker(myLocalSearchItem);
+                //_yahooMarker = new CustomMarker(0x26333b, _centerMarker.latlon, 
+                //    myLocalSearchItem, "http://www.designit.ro");
+                _yahooMarker = new CustomIconMarker2(_centerMarker.latlon, myLocalSearchItem, 0x66ff66, 0xFFFFFF, 0x000000, "Signal Strenght %", "http://localhost:3000/bin/com/mxplay/analytics/assets/wireless/wireless-green-icon.png");
+                _yahooMap.markerManager.addMarker(_yahooMarker);*/
+            }
+            
+            private function drawCircle(point:LatLon, miles:Number):void {
+                _circleOverlay = new CircleOverlay(point, Distance.milesToMeters(miles));
+            
+	            _yahooMap.overlayManager.addOverlay(_circleOverlay);
+	            
+	            _circleOverlay.fillColor = 0xFF0000;
+	            _circleOverlay.fillAlpha = .5;
+	            _circleOverlay.lineColor = 0x000080;
+	            _circleOverlay.lineAlpha = 0.75;
+	            _circleOverlay.lineThickness = 2;
+	            _circleOverlay.mouseEnabled = false;
+	            
+	            _circleOverlay.redraw();
+                //_yahooMap.overlayManager.addOverlay(_circleOverlay);
+                _yahooMap.zoomLevel = _yahooMap.zoomLevel + 1;
+                
+            }
+            
+            public function createDriveTimePoly(geomtry:Array, index:int):String {
+                var colors:Array = [0x009999, 0x00FF99, 0x9999FF]
+                var poly:Array = new Array();        
+                
+                _drivingOverlay = new PolylineOverlay();
+                
+                _drivingOverlay.mouseEnabled=false;
+                _drivingOverlay.fillColor = colors[index % 3];
+                _drivingOverlay.hasFill = true;
+                _drivingOverlay.fillAlpha = 0.30;
+                _drivingOverlay.lineColor = 0xFFFF80;
+                _drivingOverlay.lineThickness = 2;
+                _drivingOverlay.lineAlpha = 0.60;
+                _yahooMap.overlayManager.addOverlay(_drivingOverlay);
+                                                            
+                for( var i:int =0; i=geomtry.length; i++){
+                    var a:Array = geomtry.pop() as Array;
+                    var lon:Number = Number(a[0]);
+                    var lat:Number = Number(a[1]);
+                    var point:LatLon = new LatLon(lat, lon);
+                    poly.push(point);
+                }
+                // pass latlon values into the polyline data provider to draw the overlay. 
+                _drivingOverlay.dataProvider = poly;
+                _yahooMap.zoomLevel = _yahooMap.zoomLevel - 1;
+                 
+                return "done";
+            } 
+            
+            private function clearMapItems():void {
+                if( _centerMarker != null ) {
+                    _yahooMap.markerManager.removeMarker(_centerMarker);
+                    _centerMarker = null;
+                }
+                
+                if (_circleOverlay != null){
+                    _yahooMap.overlayManager.removeOverlay(_circleOverlay);
+                    _circleOverlay = null;
+                }
+                
+                if (_searchMarkers != null){
+                    for( var i:int =0; i< _searchMarkers.length; i++) {
+                        _yahooMap.markerManager.removeMarker(_searchMarkers[i]);
+                    }
+                    _searchMarkers = null;
+                }
+                
+                if (_drivingOverlay != null ) {
+                    _yahooMap.overlayManager.removeOverlay(_drivingOverlay);
+                    _drivingOverlay = null;
+                }
+            }
+            
+                
+            private function doGeolocateIP():void{
+                //var ipToSend:String = ipAddress.text;
+                //getIPLocation.send({ip:ipToSend});
+                ipData.addEventListener(Event.COMPLETE, updateIp);
+                
+                if (dataRange == "daily") {
+		        	ipData.loadData(CONTEXT_URL + "/ips/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml");
+            	} else {
+            		ipData.loadData(CONTEXT_URL + "/ips/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+            	}
+            }
+            
+            private function updateIp(event:Event):void {
+            	//for each (var prop:XML in ipData.appXML.ip) {
+            	//	getIPLocation.send({ip:prop.server_ip});
+            	//}
+            }
+           
+            private function resultHandler(event:ResultEvent):void{
+                var resultString:String = String (event.result);
+                //ipAddress.text = resultString;
+            }
+           
+            private function faultHandler(event:FaultEvent):void{
+                var faultstring:String = event.fault.faultString;
+                //Alert.show(faultstring);
+                CursorManager.removeBusyCursor();
+            }
+            
+            // Event handler for the ADG control change event.
+            public function locChanged(event:Event):void {
+                var lat:Number = AdvancedDataGrid(event.target).selectedItem.lat;
+                var lon:Number = AdvancedDataGrid(event.target).selectedItem.lon;
+				if (lat && lon) {
+                	var latlon:LatLon = new LatLon(lat, lon);
+                	centerYahooMap(latlon, 5);
+    			}
+            }
+        ]]>
+    </mx:Script>
+	<mx:Canvas width="100%" height="100%" label="Location Overview"
+	    creationComplete="creationCompleteHandler(event);"	>
+	    <mx:HBox width="100%" height="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+		    <mx:Canvas id="panelTab" width="80%" height="100%">
+		    	<head:GlassHeaders headerTitle="SIGNAL STRENGTHS TEST" />
+		    	<mx:VDividedBox width="100%" height="100%" paddingTop="30">
+		    		<mx:UIComponent id="mapContainer" width="100%" height="100%"/>
+		    		<mx:AdvancedDataGrid id="myADG" width="100%" height="100" color="0x323232" change="locChanged(event)" initialize="gc.refresh();">        
+			            <mx:dataProvider>
+			                <mx:GroupingCollection id="gc">
+			                    <mx:grouping>
+			                        <mx:Grouping>
+			                            <mx:GroupingField name="Country"/>
+			                            <mx:GroupingField name="State"/>
+			                        </mx:Grouping>
+			                    </mx:grouping>
+			                </mx:GroupingCollection>
+			            </mx:dataProvider>        
+			            <mx:columns>
+			                <mx:AdvancedDataGridColumn width="150" dataField="Country" headerText="Country"/>
+			                <mx:AdvancedDataGridColumn dataField="State" headerText="State" />
+			                <mx:AdvancedDataGridColumn dataField="Region" headerText="Region"/>
+			                <mx:AdvancedDataGridColumn dataField="City" headerText="City"/>
+			                <mx:AdvancedDataGridColumn dataField="Zip" headerText="Zip"/>
+			            </mx:columns>
+			       </mx:AdvancedDataGrid>
+		    	</mx:VDividedBox>
+			</mx:Canvas>
+			<mx:Panel id="formPanel" height="100%" width="20%" title="FIND" horizontalAlign="left" styleName="opaquePanel">
+				<mx:Grid width="90%" paddingTop="5">
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"><mx:Label text="Address: "/></mx:GridItem>
+	                    <mx:GridItem><mx:TextInput id="address" width="85" text=""/></mx:GridItem>
+	                </mx:GridRow>
+	            </mx:Grid>
+	            <mx:Label text="Or at location by clicking on the map "/>
+    			<mx:Spacer height="10"/>
+    			<mx:Grid>                
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"><mx:Label text="Within: "/></mx:GridItem>
+	                    <mx:GridItem>
+	                    	<mx:HSlider id="withinMiles" minimum="1" maximum="300" value="4" dataTipPlacement="top" tickColor="0x323232"
+            					snapInterval="1" tickInterval="10" labels="['1 mile','300 miles']" allowTrackClick="true" 
+            					liveDragging="true" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"><mx:Label text="Drive time: "/></mx:GridItem>
+	                    <mx:GridItem>
+	                    	<mx:HSlider id="driveTime" minimum="1" maximum="60" value="3" dataTipPlacement="top" tickColor="0xffffff"
+            					snapInterval="1" tickInterval="10" labels="['1 minute','60 minutes']" allowTrackClick="true" 
+            					liveDragging="true" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"><mx:Label text="Signal Levels: "/></mx:GridItem>
+	                    <mx:GridItem>
+	                    	<mx:HSlider id="signalStrength" minimum="1" maximum="100" thumbCount="2" values="[0,100]" dataTipPlacement="top" tickColor="0xffffff"
+            					snapInterval="1" tickInterval="10" labels="['1%','100%']" allowTrackClick="true" 
+            					liveDragging="true" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"></mx:GridItem>
+	                    <mx:GridItem><mx:Button id="search" label="Find" click="handleFind()"/></mx:GridItem>
+	                </mx:GridRow>
+	            </mx:Grid>
+	            
+	            <mx:Label text="Legend: "/>
+	            <mx:VBox id="resultInfo" width="90%" height="50%" paddingLeft="5" paddingTop="10">
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FF0000" borderStyle="solid" borderThickness="2" 
+                             backgroundAlpha="0.1" backgroundColor="#FF0000" 
+                             width="45" height="45" cornerRadius="50"/>
+                    <mx:Label text="{withinMiles.value} miles circle"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFF800" borderStyle="solid" borderThickness="2" 
+                             backgroundAlpha="0.3" backgroundColor="#009999" 
+                             width="45" height="45" cornerRadius="50"/>
+                    <mx:Label text="{driveTime.value} mins drive time polygon"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#0033ff" 
+                             width="25" height="25" cornerRadius="50"/>
+                    <mx:Label text="Excellent: 100%-76%"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#66ff66" 
+                             width="25" height="25" cornerRadius="50"/>
+                    <mx:Label text="Good: 75%-51%"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#ffff00" 
+                             width="25" height="25" cornerRadius="50"/>
+                    <mx:Label text="Fair: 50%-26%"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#26333b" 
+                             width="25" height="25" cornerRadius="50"/>
+                    <mx:Label text="Poor: 25%-1%"/>
+                </mx:HBox>
+            </mx:VBox>
+			</mx:Panel>
+		</mx:HBox>
+		
+	</mx:Canvas>
+
+</mx:Application>

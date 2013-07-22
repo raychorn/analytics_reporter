@@ -1,0 +1,2 @@
+module DroppedConnectionsHelper
+end

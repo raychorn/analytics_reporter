@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dialog.mxml -->
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+        layout="vertical"
+        title="Download Window"
+        showCloseButton="true"
+        width="350"
+        height="410"
+        close="titleWindow_close(event);"
+        creationComplete="init();" >
+
+    <mx:Script>
+        <![CDATA[
+        	import mx.containers.ApplicationControlBar;
+            import mx.events.CloseEvent;
+            import mx.containers.ControlBar;
+	        import mx.containers.Panel;
+	        import mx.containers.VBox;
+	        import mx.controls.Button;
+	        import mx.controls.Label;
+	        import mx.controls.Spacer;
+	        import mx.controls.TextInput;
+	        import mx.managers.PopUpManager;
+	        import mx.collections.ArrayCollection;
+	        import mx.rpc.http.HTTPService;
+	        import mx.controls.Alert;
+	        
+	        private const CONTEXT_URL:String = Settings.SiteUrl;
+	        
+	        //File Download Variables
+	        [Bindable]
+            private var arrColl:ArrayCollection;
+	        private var fileRef:FileReference;
+            private var urlReq:URLRequest;
+            
+	        [Bindable] var date:Date = new Date();
+	        [Bindable] var choosenRange:String = "monthly";
+	        
+	        [Bindable]
+            public var months:ArrayCollection = new ArrayCollection(
+                [ {label:"January", data:1}, 
+                  {label:"February", data:2}, 
+                  {label:"March", data:3}, 
+                  {label:"April", data:4}, 
+                  {label:"May", data:5}, 
+                  {label:"June", data:6}, 
+                  {label:"July", data:7}, 
+                  {label:"August", data:8}, 
+                  {label:"September", data:9}, 
+                  {label:"October", data:10}, 
+                  {label:"November", data:11}, 
+                  {label:"December", data:12} ]);
+
+			private function init():void {
+                // Initialize the array collection to an empty collection.
+                arrColl = new ArrayCollection();
+                
+                // Toggle Buttons and Option Visibility according to Type
+                if (Settings.exportType == "pdf") {
+	                rbAll.enabled = false;
+	                rbYear.enabled = false;
+	                 nsYear.enabled = false;
+	                rbDay.enabled = false;
+	                 dateField.enabled = false;
+	                 
+	                rbMonth.selected = true;
+                }
+                                
+                // Define file reference object and add a bunch of event listeners.
+                fileRef = new FileReference();
+                fileRef.addEventListener(Event.CANCEL, doEvent);
+                fileRef.addEventListener(Event.COMPLETE, doEvent);
+                fileRef.addEventListener(Event.OPEN, doEvent);
+                fileRef.addEventListener(Event.SELECT, doEvent);
+                fileRef.addEventListener(HTTPStatusEvent.HTTP_STATUS, doEvent);
+                fileRef.addEventListener(IOErrorEvent.IO_ERROR, doEvent);
+                fileRef.addEventListener(ProgressEvent.PROGRESS, doEvent);
+                fileRef.addEventListener(SecurityErrorEvent.SECURITY_ERROR, doEvent);
+            }
+            
+            private function doEvent(evt:Event):void {
+                // Create shortcut to the FileReference object.
+                var fr:FileReference = evt.currentTarget as FileReference;
+                
+                // Add event order and type to the DataGrid control.
+                arrColl.addItem({data:arrColl.length+1, type:evt.type, eventString:evt.toString()});
+
+                try {
+                    // Update the Model.
+                    fileRefModel.creationDate = fr.creationDate;
+                    fileRefModel.creator = fr.creator;
+                    fileRefModel.modificationDate = fr.modificationDate;
+                    fileRefModel.name = fr.name;
+                    fileRefModel.size = fr.size;
+                    fileRefModel.type = fr.type;
+                } catch (err:*) {
+                    // uh oh, an error of sorts.
+                }
+            }
+            
+            private function downloadSource():void {
+                // Clear existing array collection.
+                arrColl = new ArrayCollection();
+                // Begin download.
+                if (Settings.exportType == "pdf") {
+                	if (rbWeek.selected) {
+                		fileRef.download(urlReq, "QuickLink_Report_(Week" + calculateISO8601WeekNumber(dateWeekField.selectedDate).toString() + "of52-" + nsMonthYear.data +").pdf");
+		        	} else if (rbMonth.selected) {
+						fileRef.download(urlReq, "QuickLink_Manager_Report_("+ cbMonth.selectedItem.label + "-" + nsMonthYear.data +").pdf");
+		        	}
+                }
+                else {
+                	if (rbAll.selected) {
+                		fileRef.download(urlReq, "QuickLink_Data_Export_(all)." + Settings.exportType);
+		        	} else if (rbYear.selected) {
+		        		fileRef.download(urlReq, "QuickLink_Data_Export_(" + nsYear.data + ")." + Settings.exportType);
+		        	} else if (rbMonth.selected) {
+						fileRef.download(urlReq, "QuickLink_Data_Export_(" + cbMonth.selectedItem.label + "-" + nsMonthYear.data +")." + Settings.exportType);
+		        	} else if (rbWeek.selected) {
+						fileRef.download(urlReq, "QuickLink_Data_Export_(Week" + calculateISO8601WeekNumber(dateWeekField.selectedDate).toString() + "of52-" + nsMonthYear.data +")." + Settings.exportType);
+		        	} else if (rbDay.selected) {
+		        		fileRef.download(urlReq, "QuickLink_Data_Export_(" + dateField.selectedDate.getFullYear() + "-" + (dateField.selectedDate.getMonth()+1) + "-" + dateField.selectedDate.getDate() + ")." + Settings.exportType);
+		        	}
+                }
+            }
+
+            private function titleWindow_close(evt:CloseEvent):void {
+                PopUpManager.removePopUp(this);
+            }
+	        
+	        private function closePopUp(evt:MouseEvent):void {
+                PopUpManager.removePopUp(this);
+	        }
+
+	        private function processExport(evt:MouseEvent):void {
+	        	if (rbAll.selected) {
+	        		urlReq = new URLRequest(CONTEXT_URL + "/events/" + choosenRange + "." + Settings.exportType);
+	        		//Alert.show("Export = " + CONTEXT_URL + "/events/" + choosenRange + "." + Settings.exportType, "Type");
+	        	} else if (rbYear.selected) {
+	        		urlReq = new URLRequest(CONTEXT_URL + "/events/" + choosenRange + "/" + nsYear.data + "." + Settings.exportType);
+	        		//Alert.show("Export = " + CONTEXT_URL + "/events/" + choosenRange + "/" + nsYear.data + "." + Settings.exportType, "Type");
+	        	} else if (rbMonth.selected) {
+	        		urlReq = new URLRequest(CONTEXT_URL + "/events/" + choosenRange + "/" + nsMonthYear.data + "/" + cbMonth.selectedItem.data + "." + Settings.exportType);
+	        		//Alert.show("Export = " + CONTEXT_URL + "/events/" + choosenRange + "/" + nsMonthYear.data + "/" + cbMonth.selectedItem.data + "." + Settings.exportType, "Type");
+	        	} else if (rbWeek.selected) {
+	        		urlReq = new URLRequest(CONTEXT_URL + "/events/weekly/" + dateWeekField.selectedDate.getFullYear() + "/" + calculateISO8601WeekNumber(dateWeekField.selectedDate).toString() + "." + Settings.exportType);
+	        		//Alert.show("Export = " + CONTEXT_URL + "/events/weekly/" + dateWeekField.selectedDate.getFullYear() + "/" + calculateISO8601WeekNumber(dateWeekField.selectedDate).toString() + "." + Settings.exportType, "Type");
+	        	} else if (rbDay.selected) {
+	        		urlReq = new URLRequest(CONTEXT_URL + "/events/" + dateField.selectedDate.getFullYear() + "/" + (dateField.selectedDate.getMonth()+1) + "/" + dateField.selectedDate.getDate() + "." + Settings.exportType);
+	        		//Alert.show("Export = " + CONTEXT_URL + "/events/" + dateField.selectedDate.getFullYear() + "/" + (dateField.selectedDate.getMonth()+1) + "/" + dateField.selectedDate.getDate() + "." + Settings.exportType, "Type");
+	        	}
+	        	downloadSource();
+                PopUpManager.removePopUp(this);
+	        }
+	        
+	        public function WeekNumber(adate:Date):int{
+				//
+				// 1 - CALC JULIAN DATE NUMBER 
+				//
+				var wfullyear:int = adate.getFullYear();
+				var wmonth:int = adate.getMonth() + 1;
+				var wdate:int = adate.getDate();
+				//
+				var wa:int = Math.floor((14 - wmonth) / 12);
+				var wy:int = wfullyear + 4800 - wa;
+				var wm:int = wmonth + 12 * wa - 3;
+				//
+				// wJDN is the Julian Day Number
+				//
+				var wJDN:int = wdate + Math.floor(((153 * wm) + 2) / 5) + wy * 365
+				                     + Math.floor(wy / 4)
+				                     - Math.floor(wy / 100)
+				                     + Math.floor(wy / 400) - 32045;
+				//
+				// 2 - CALC WEEK NB
+				//
+				var d4:int = (((wJDN + 31741 - (wJDN % 7)) % 146097) % 36524) % 1461;
+				var L:int = Math.floor(d4 / 1460);
+				var d1:int = ((d4 - L) % 365) + L;
+				var wweekNb:int = Math.floor(d1 / 7) + 1;
+				return wweekNb;
+			};
+			
+			function calculateISO8601WeekNumber(d:Date):int {
+			// 1) Convert date to Y M D
+				var Y:Number = d.getFullYear();
+				var M:Number = d.getMonth();
+				var D:Number = d.getDate()-6;
+				
+				// 2) Find out if Y is a leap year
+				var isLeapYear:Boolean = (Y % 4 == 0  &&  Y % 100 != 0) || Y % 400 == 0;
+				if (isLeapYear)
+				{
+					trace('Is a leap year');
+				}
+				
+				// 3) Find out if Y-1 is a leap year
+				var lastYear:Number = Y - 1;
+				var lastYearIsLeap:Boolean = (lastYear % 4 == 0  &&  lastYear % 100 != 0) || lastYear % 400 == 0;
+				if(lastYearIsLeap)
+				{
+					trace('Is year after a leap year');
+				}
+				
+				// 4) Find the Day of Year Number for Y M D
+				var month:Array = [0,31,59,90,120,151,181,212,243,273,304,334];
+				var DayOfYearNumber:Number = D + month[M];
+				if(isLeapYear && M > 1)
+					DayOfYearNumber++;
+				trace('Day of the year: ' + DayOfYearNumber);
+				
+				// 5) Find the weekday for Jan 1 (monday = 1, sunday = 7)
+				var YY:Number = (Y-1) % 100; // ...
+				var C:Number = (Y-1) - YY; // get century
+				var G:Number = YY + YY/4; // ...
+			   	var Jan1Weekday:Number = Math.floor(1 + (((((C / 100) % 4) * 5) + G) % 7));
+				trace('Day of the week for Jan 1 (1 = monday, 7 = sunday): ' + Jan1Weekday);
+				
+				// 6) Find the weekday for Y M D
+				var H:Number = DayOfYearNumber + (Jan1Weekday - 1);
+			   	var Weekday:Number = Math.floor(1 + ((H -1) % 7));
+				trace('Day of the week for date (1 = monday, 7 = sunday): ' + Weekday);
+				
+				var YearNumber:Number = Y;
+				var WeekNumber:Number;
+				// 7) Find if Y M D falls in YearNumber Y-1, WeekNumber 52 or 53
+				if (DayOfYearNumber <= (8-Jan1Weekday) && Jan1Weekday > 4)
+				{
+					trace('Date is within the last week of the previous year.');
+					YearNumber = Y - 1;
+					if (Jan1Weekday == 5 || (Jan1Weekday == 6 && isLeapYear))
+					{
+						WeekNumber = 53;
+					} else
+					{ 
+						WeekNumber = 52;
+					}
+				}
+				
+				// 8) Find if Y M D falls in YearNumber Y+1, WeekNumber 1
+				if (YearNumber == Y)
+				{
+					var I:Number = 365;
+					if (isLeapYear)
+					{ 
+						I = 366;
+					}
+					if (I - DayOfYearNumber < 4 - Weekday)
+					{
+						trace('Date is within the first week of the next year.');
+						YearNumber = Y + 1;
+						WeekNumber = 1;
+					}
+				}
+				
+				// 9) Find if Y M D falls in YearNumber Y, WeekNumber 1 through 53
+				if (YearNumber == Y)
+				{
+					trace('Date is within it\'s current year.');
+					var J:Number = DayOfYearNumber + (7 - Weekday) + (Jan1Weekday -1);
+					WeekNumber = J / 7;
+					if (Jan1Weekday > 4)
+					{
+						WeekNumber--;
+					}
+				}
+				Analytics.debug("Week = " + WeekNumber);
+				return WeekNumber;
+			};
+	        
+	        private function monthCloseHandler(event:Event):void {
+
+        	}     	
+        	
+        	// Event handler for the DateField change event.
+	        private function dateChanged(date:Date):void {
+				//if (date == null)
+				    //selection.text = "Date selected: ";                
+				//else
+				    //selection.text = "Date selected: " + date.getFullYear().toString() + 
+				    //    '/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	        }
+	        
+	        public function dateWeekChanged(calendar :DateChooser) :void
+            {
+            	 var sd:Date = calendar.selectedDate
+            	 if (sd == null) {
+            	 	var week:Date = new Date();
+            	 	sd = week;
+            	 }
+            	 var weekNb:int = calculateISO8601WeekNumber(sd);
+				 var dayUTC:Number = 86400000;
+				 // check if sunday (first day of civil week)
+				 var sd_sun:Date = sd;
+				 if (sd.day != 0) 
+				 {
+				 sd_sun = new Date(sd.valueOf() - sd.day * dayUTC);
+				 }
+				 var sd_sat:Date = new Date(sd_sun.valueOf() + 6 * dayUTC);
+				 calendar.selectedRanges = [{rangeStart: sd_sun, rangeEnd: sd_sat}];
+            }
+	        
+	        
+	        
+	        private function helpHints(i:int):void {
+	        	switch (i) {
+	        		case 0:
+	        			txtHelp.text = "Select the range of Data you would like to export and the frequency.";
+	        		break;
+	        		case 1:
+	        			txtHelp.text = "Export all " + choosenRange + " Data available for every year available.";
+        			break;
+        			case 2:
+        				txtHelp.text = "Export all " + choosenRange + " Data available for year selected.";
+    				break;
+    				case 3:
+        				txtHelp.text = "Export all " + choosenRange + " Data available for month and year selected.";
+    				break;
+    				case 4:
+        				txtHelp.text = "Export all daily Data available for date selected.";
+    				break;
+    				case 5:
+    					txtHelp.text = "Sort data by Month.";
+					break;
+					case 6:
+						txtHelp.text = "Sort data by Day.";
+					break;
+    				default:
+    					txtHelp.text = "Select the range of Data you would like to export and the frequency.";
+	        	}
+	        }
+	
+        ]]>
+    </mx:Script>
+    
+    <mx:Model id="fileRefModel">
+        <file>
+            <creationDate>{""}</creationDate>
+            <creator>{""}</creator>
+            <modificationDate>{""}</modificationDate>
+            <name>{""}</name>
+            <size>{""}</size>
+            <type>{""}</type>
+        </file>
+    </mx:Model>
+    
+    <mx:Label text="Select options:" />
+    
+    <mx:VBox paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+   		<mx:RadioButton groupName="options" id="rbAll" label="All" selected="true" color="0x323232" mouseOut="helpHints(0)" mouseOver="helpHints(1)" click="" /> 
+   		<mx:HBox>
+	        <mx:RadioButton groupName="options" id="rbYear" width="75" label="Year" color="0x323232" mouseOut="helpHints(0)" mouseOver="helpHints(2)" click="" />
+   			<mx:NumericStepper id="nsYear" minimum="2009" maximum="{date.getFullYear()}" stepSize="1" width="65"/>
+        </mx:HBox>
+        <mx:HBox>
+        	<mx:RadioButton groupName="options" id="rbMonth" width="75" label="Month" color="0x323232" mouseOut="helpHints(0)" mouseOver="helpHints(3)" click="" />
+        	<mx:ComboBox id="cbMonth" dataProvider="{months}" width="100" color="0x000000" close="monthCloseHandler(event);"/>
+        	<mx:NumericStepper id="nsMonthYear" minimum="2009" maximum="{date.getFullYear()}" stepSize="1" width="65"/>
+        </mx:HBox>
+        <mx:HBox>
+        	<mx:RadioButton groupName="options" id="rbWeek" width="75" label="Week" color="0x323232" mouseOut="helpHints(0)" mouseOver="helpHints(7)" click="choosenRange = 'weekly';" />
+        	<mx:DateChooser id="dateWeekField" width="173" height="140" yearNavigationEnabled="true" change="dateWeekChanged(DateChooser(event.target))" creationComplete="dateWeekChanged(DateChooser(event.target))" color="0x000000"/>
+    	</mx:HBox>
+        <mx:HBox>
+        	<mx:RadioButton groupName="options" id="rbDay" width="75" label="Day" color="0x323232" mouseOut="helpHints(0)" mouseOver="helpHints(4)" click="rbDaily.selected = 'true'; choosenRange = 'daily';" />
+        	<mx:DateField id="dateField" yearNavigationEnabled="true" change="dateChanged(DateField(event.target).selectedDate)" color="0x000000"/>
+    	</mx:HBox>
+    	<mx:Box width="100%" borderThickness="1">
+    		<mx:Text id="txtHelp" width="100%" text="Select the range of Data you would like to export and the frequency." />
+    	</mx:Box>
+    </mx:VBox>
+    
+    <mx:ControlBar horizontalAlign="right">
+    	<mx:Label text="Data by:" />
+       	<mx:RadioButton groupName="range" id="rbMonthly" label="Month" selected="true" color="#0033CC" mouseOut="helpHints(0)" mouseOver="helpHints(5)" click="choosenRange = 'monthly'" />
+		<mx:RadioButton groupName="range" id="rbDaily" label="Day" color="#009900" mouseOut="helpHints(0)" mouseOver="helpHints(6)" click="choosenRange = 'daily'" />
+        <mx:Button label="OK" click="processExport(event)"/>
+        <mx:Button label="Cancel" click="closePopUp(event)"/>
+    </mx:ControlBar>
+
+</mx:TitleWindow>

@@ -1,0 +1,2 @@
+module SignalStrengthsHelper
+end

@@ -1,0 +1,119 @@
+# MySQL.  Versions 4.1 and 5.0 are recommended.
+#
+# Install the MySQL driver:
+#   gem install mysql
+# On Mac OS X:
+#   sudo gem install mysql -- --with-mysql-dir=/usr/local/mysql
+# On Mac OS X Leopard:
+#   sudo env ARCHFLAGS="-arch i386" gem install mysql -- --with-mysql-config=/usr/local/mysql/bin/mysql_config
+#       This sets the ARCHFLAGS environment variable to your native architecture
+# On Windows:
+#   gem install mysql
+#       Choose the win32 build.
+#       Install MySQL and put its /bin directory on your path.
+#
+# And be sure to use new-style password hashing:
+#   http://dev.mysql.com/doc/refman/5.0/en/old-client.html
+analytics_avot:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: analytics
+  pool: 5
+  username: root
+  password: aabbddcc
+  host: 192.168.62.4
+  
+development:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: reporter_development
+  pool: 5
+  username: dbuser
+  password: mxplay
+  host: localhost
+  
+analytics:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: analytics
+  pool: 5
+  username: dbuser
+  password: mxplay
+  #host: localhost
+  host: 10.100.162.61
+  #host: 10.100.162.61
+  
+analytics_verizon:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: analytics
+  pool: 5
+  username: dbuser
+  password: mxplay
+#  host: localhost
+  host: 10.100.162.61
+#  host: 10.100.162.61
+    
+analytics_connectivity:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: analytics_connectivity
+  pool: 5
+  username: dbuser
+  password: mxplay
+  host: localhost
+#  host: 10.100.162.51
+#  host: 198.177.231.61
+
+analytics_vvm:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: analytics_vvm
+  pool: 5
+  username: dbuser
+  password: mxplay
+  host: localhost
+  #host: 10.100.162.51
+  
+analytics_vtt:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: analytics_vtt
+  pool: 5
+  username: dbuser
+  password: mxplay
+  host: localhost
+  #host: 10.100.162.51
+ 
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: reporter_test
+  pool: 5
+  username: dbuser
+  password: mxplay
+  host: localhost
+
+production:
+  adapter: mysql
+  encoding: utf8
+  reconnect: false
+  database: reporter_production
+  #database: analytics_vvm
+  pool: 5
+  username: dbuser
+  password: mxplay
+  host: localhost
+  #host: 10.100.162.51 # Do NOT use IP 
+  

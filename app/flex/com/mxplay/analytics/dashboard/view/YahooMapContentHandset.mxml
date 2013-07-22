@@ -1,0 +1,783 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PodContentBase
+	xmlns="com.mxplay.analytics.dashboard.view.*"
+	xmlns:vzd="com.mxplay.verizonDemo.components.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import mx.charts.series.ColumnSet;
+			import mx.charts.series.ColumnSeries;
+			import mx.collections.ArrayCollection;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.events.ListEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.http.HTTPService;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			import mx.controls.DateField;
+			import com.mxplay.analytics.dashboard.view.YahooMapXMLItemMarker;
+			import com.mxplay.analytics.dashboard.events.YahooMapXMLItemEvent;
+			
+			import com.mxplay.analytics.events.DateChangeEvent;
+			import mx.managers.CursorManager;
+			
+			[Bindable]
+			private var dataFields:ArrayCollection;
+			
+			[Bindable]
+			private var labelFields:ArrayCollection;
+			[Bindable]
+			private var dataProvider:ArrayCollection;
+			
+			[Bindable]
+			private var selectedViewIndex:Number = 0;
+			
+			[Bindable]
+			private var _selectedIndex:Number = -1;
+			
+			[Bindable]
+			private var addingRecord:Boolean;
+			
+			// for checkedBoxChart
+			[Bindable] private var dataSource:String;
+			//-------------------------------------------------------------
+			private var dateFormatter:DateFormatter;
+			private var startDate:Date = new Date();
+			private var endDate:Date = new Date();
+			
+			private const NEW:String = "New";
+			private const ADD:String = "Add";
+			
+			// Map Variables for VVM
+			var _lengthOfRecords:Number;
+			var _locationToFindArray:Array = new Array();
+			var _yahooXMLItem:YahooMapXMLItemMarker = new YahooMapXMLItemMarker();
+			
+			override protected function onResultHttpService(e:ResultEvent):void
+			{
+				//DateChange Event Listener 
+				mx.core.Application.application.addEventListener(DateChangeEvent.DATECHANGE, dateChangeHandler);
+				//dateFormatter = new DateFormatter();
+				//dateFormatter.formatString = "MM/DD/YY";
+				
+				var a:Array = xmlListToObjectArray(e.result.record);
+				dataProvider = new ArrayCollection(a);
+				//Alert.show(dataProvider[0].toString(), "Error2");
+				
+				// Get the values from properties XML.
+				a = properties.@dataFields.toString().split(",");
+				dataFields = new ArrayCollection(a);
+				//Alert.show(dataFields.getItemAt(1).toString(), "Error");
+				var labels:Array = properties.@labels.toString().split(",");
+				labelFields = new ArrayCollection(labels);
+				
+				dataSource = properties.@dataSource.toString();
+				//Alert.show(dataSource, "Error");
+				
+				
+				//selectedIndex = 0;
+				if (properties.@selectedViewIndex.toString() != null &&
+					Number(properties.@selectedViewIndex) <= (viewStack.numChildren - 1)) // Make sure the index is in range.
+				{
+					//Alert.show(properties.@selectedViewIndex.toString(), "errpr");
+					selectedViewIndex = Number(properties.@selectedViewIndex);
+				}
+				
+				//Looop through records and get location information to
+				//create a loc:LatLon object from a geocode locate which
+				//will set a CustomMapMarker on the map with a tooltip.
+				VVM.debug(e.result.record.toXMLString());
+				_lengthOfRecords = e.result.record.length();
+				var index:Number = 0;
+				for each (var prop:XML in e.result.record)
+                {
+                	var _locationToFind:Address;
+                	//Alert.show(prop.toXMLString());
+                	//VVM.debug(index.toString() + ",");
+                	var city:String = prop.city;
+                	var state:String = prop.state;
+                	var country:String = prop.country;
+                	//_locationToFindArray[index] = new Address(city + "," + state + "," + country); 
+                	//_locationToFindArray[index].addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleGeocodeSuccess);
+                    //_locationToFindArray[index].geocode();
+                	_locationToFind = new Address(city + "," + state + "," + country); 
+                    //_locationToFindArray[0] = _locationToFind;
+                    //_locationToFind.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleGeocodeSuccess);
+                    //_locationToFind.geocode();
+                    
+                    //_yahooXMLItem.addEventListener(YahooMapXMLItemEvent.FINISHED, handleXMLItemLocComplete);
+                    _yahooXMLItem = new YahooMapXMLItemMarker(prop,_locationToFind);
+                    _yahooXMLItem.addEventListener(YahooMapXMLItemEvent.FINISHED, handleXMLItemLocComplete);
+                    index++; 
+                }
+                //Alert.show(_locationToFind.address.toString())
+                /***
+                *The following should be in a sliding panel in the future
+                ***/
+                // check dataSource_from & dataSource_to
+				if((properties.@id == "pod41vvm_map")) {
+		  			if(properties.@dataSource_cb1.toString() != "") {
+						onDatasource_cb1Load(properties.@dataSource_cb1.toString() + "&startdate=" + DateField.dateToString(startDate, "YYYY-MM-DD") + "&enddate=" + DateField.dateToString(endDate, "YYYY-MM-DD"));
+					}
+				}
+				//Alert.show("StartDate=" + DateField.dateToString(startDate, "YYYY-MM-DD") + " EndDate=" + DateField.dateToString(endDate, "YYYY-MM-DD"));
+					
+			}
+			
+			protected function onDatasource_cb1Load(uri:String):void
+			{
+				//Alert.show(uri);
+				var httpService:HTTPService = new HTTPService();
+				httpService.url = Settings.SiteUrl + uri;
+				httpService.resultFormat = "e4x";
+				httpService.addEventListener(FaultEvent.FAULT, onFaultHttpService);
+				httpService.addEventListener(ResultEvent.RESULT, onResultHttpServiceCbLoad);
+				httpService.send();
+			}
+			
+			protected function onResultHttpServiceCbLoad(e:ResultEvent):void
+			{
+				var a:Array = xmlListToObjectArray(e.result.record);
+				var data_1:ArrayCollection = new ArrayCollection(a);
+		
+				cbHandset.dataProvider = data_1;
+	       		cbHandset.labelField = "handset";
+			}
+			
+			protected function onHandsetChange(handset:String):void
+			{
+				// Load the data source.
+				var httpService:HTTPService = new HTTPService();
+				httpService.url = Settings.SiteUrl + properties.@dataSource + "&handset=" + handset;
+				//Alert.show("NEW URL" + httpService.url.toString());
+				httpService.resultFormat = "e4x";
+				httpService.addEventListener(FaultEvent.FAULT, onFaultHttpService);
+				//httpService.addEventListener(ResultEvent.RESULT, onResultHttpService);
+				httpService.addEventListener(ResultEvent.RESULT, onResultHttpService);
+				httpService.send();
+			}
+			
+			/*
+			private function set selectedIndex(n:Number):void
+			{
+				addingRecord = false;
+				
+				// Make sure we are within range of dataProvider.
+				if (n < 0)
+					n = dataProvider.length - 1;
+				else if (n > (dataProvider.length - 1))
+					n = 0;
+
+				var item:Object = dataProvider.getItemAt(n);
+				_selectedIndex = n;
+			}
+			
+			private function get selectedIndex():Number
+			{
+				return _selectedIndex;
+			}
+			*/
+									
+			private function formatDate(item:Object, column:DataGridColumn):String
+			{
+				return dateFormatter.format(item[column.dataField]);
+			}
+		]]>
+	</mx:Script>
+	<mx:Script>
+        <![CDATA[
+        	import mx.utils.URLUtil;
+        	import com.mxplay.analytics.util.AppXML;
+        	import com.mxplay.analytics.util.CustomIconMarker2;
+        	import com.mxplay.analytics.util.CustomMarker;
+        	import mx.collections.ArrayCollection;
+            import mx.effects.easing.Cubic;
+            import com.yahoo.maps.api.markers.SimpleMarker;
+            import mx.controls.Alert;
+            import mx.managers.CursorManager;
+            import mx.rpc.events.FaultEvent;
+            import mx.rpc.events.ResultEvent;
+            import com.yahoo.maps.api.overlays.CircleOverlay;
+            import mx.events.ResizeEvent;
+
+            import com.yahoo.maps.api.YahooMap;
+            import com.yahoo.maps.api.YahooMapEvent;
+            import com.yahoo.maps.api.core.location.Address;
+            import com.yahoo.maps.api.core.location.LatLon;
+            import com.yahoo.maps.api.utils.Distance;
+            import com.yahoo.maps.api.overlays.CircleOverlay;
+            import com.yahoo.maps.webservices.geocoder.GeocoderResult;
+            import com.yahoo.maps.webservices.geocoder.GeocoderResultSet;
+            import com.yahoo.maps.webservices.geocoder.events.GeocoderEvent;
+            import com.yahoo.maps.webservices.geocoder.Geocoder;
+            import com.yahoo.maps.webservices.local.LocalSearchItem;
+            import com.yahoo.maps.api.markers.SearchMarker;
+            
+            import com.yahoo.maps.api.overlays.PolylineOverlay;
+            
+            import flash.external.*;
+            
+            //Settings.SiteUrl = "http://" + mx.utils.URLUtil.getServerNameWithPort(Application.application.url);
+            private const CONTEXT_URL:String = Settings.SiteUrl;
+            //Alert.show('url','url');
+            //GLOBAL REMOVE LATER
+            Settings.dataConnection = "vvm";
+			
+            [Bindable] private var ipData:AppXML;
+            [Bindable] private var signalData:AppXML = new AppXML();
+            [Bindable] public var geoInfo:ArrayCollection = new ArrayCollection();
+            
+            [Bindable] public var dataRange:String = Settings.dataRange;
+            [Bindable] var selection:String;
+			[Bindable] var year:String = "2010";
+			[Bindable] var month:String = "03";
+			[Bindable] var day:String = "01";
+
+            // out map
+            private var _yahooMap:YahooMap;
+            // our custom marker
+            private var _yahooMarker:CustomIconMarker2;
+            private var _geocoder:Geocoder;
+            private var _centerAddress:Address;
+            private var _addressToFind:Address; 
+            private var _centerMarker:SimpleMarker = null;
+            private var _searchMarkers:Array = null;
+            private var _circleOverlay:CircleOverlay = null;
+            private var _drivingOverlay:PolylineOverlay = null;
+            [Bindable]
+            private var _centerAddressStr:String= "";
+            private var isYahooMapAdded:Boolean = false;
+            
+            public function dataRangeHandler(range:Object):void {
+				dataRange = range.data;
+				dateChangeHandlerDisplay(Settings.dateSel);
+		    }
+		    
+		    public function dateChangeHandler(e:DateChangeEvent):void {
+		    	startDate = e.startdate;
+		    	endDate = e.enddate;
+				dateChangeHandlerDisplay(e.startdate,e.enddate);
+				onDateChange(e.startdate, e.enddate);
+		    }
+		    
+		    public function dateChangeHandlerDisplay(datestart:Date,dateend:Date=null):String {
+		    	if (datestart == null) {
+	            	datestart = Settings.dateSel;
+	            	year = datestart.getFullYear().toString();
+	                month = (datestart.getMonth()+1).toString();
+	                day = datestart.getDate().toString();
+	            	if (dataRange == "daily") {
+	                	selection = "Display Date: " + datestart.getFullYear().toString() +
+	                    	'/' + (datestart.getMonth()+1).toString() + '/' + datestart.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            } else {
+	            	year = datestart.getFullYear().toString();
+	                month = (datestart.getMonth()+1).toString();
+	                day = datestart.getDate().toString();
+	                if (dataRange == "daily") {
+	                	selection = "Display Date: " + datestart.getFullYear().toString() +
+	                    	'/' + (datestart.getMonth()+1).toString() + '/' + datestart.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            }
+	            if (dateend != null) {
+	            	var lblDateEnd:String;
+	            	year = dateend.getFullYear().toString();
+	                month = (dateend.getMonth()+1).toString();
+	                day = dateend.getDate().toString();
+	                if (dataRange == "daily") {
+	                	lblDateEnd = dateend.getFullYear().toString() +
+	                    	'/' + (dateend.getMonth()+1).toString() + '/' + dateend.getDate();
+	             	} else {
+	             		lblDateEnd = Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	             	selection = selection + " - " + lblDateEnd;
+	            }
+	            dateDisplay.text=selection;
+                _yahooMap.markerManager.removeAllMarkers();
+                _yahooMap.overlayManager.removeAllOverlays();
+	            //geoInfo.removeAll();
+	            //geoInfo.refresh();
+	            //gc.refresh();
+	            //doGeolocateIP();
+	            return selection;
+		    }
+		    
+		    public function handleXMLItemLocComplete(event:YahooMapXMLItemEvent):void {
+		    	//Alert.show("XMLITEMLOCATIONCOMPLETE");
+		    	//Alert.show(event._xmlItemMarker._latlon.toString());
+		    	//addCenterMarker(event._xmlItemMarker._latlon);
+                _yahooMap.overlayManager.addOverlay(event._xmlItemMarker._circleOverlay);
+                _yahooMap.markerManager.addMarker(event._xmlItemMarker._yahooMarker);	
+		    }
+		    
+		    public function onCombBoxAddButtonClicked(e:MouseEvent):void {
+				var handsetSelected:String = cbHandset.selectedLabel;
+				Alert.show(handsetSelected);
+				//onDataChange(from_handset, to_handset);
+				//colorNum = colorNum + 1;	
+			}
+            
+            public function creationCompleteHandler(event:Event):void{
+                //getIPHTTPService.send();
+                //getIPLocation.url = CONTEXT_URL + "/geoip";
+                //Settings.SiteUrl = "http://" + mx.utils.URLUtil.getServerNameWithPort(Application.application.url);
+                //CONTEXT_URL = Settings.SiteUrl;
+                //Alert.show(CONTEXT_URL,'url');
+                ExternalInterface.addCallback("createDriveTimePoly",createDriveTimePoly);
+                addYahooMap();
+            }
+            
+            private function addYahooMap():void{
+                if (isYahooMapAdded){
+                    return;
+                } else {
+                    isYahooMapAdded = true;
+                }
+                var appid:String = "u9geeRbV34FZbJMpJ2ty8sf0tW7B22eRq8BTDZmBMAJ_ScrOGmpkA.ycAybDxxA-";        
+                
+                _yahooMap = new YahooMap();
+                _yahooMap.addEventListener(YahooMapEvent.MAP_INITIALIZE, handleMapInitialize);
+                _yahooMap.init(appid, mapContainer.width, mapContainer.height);
+                _yahooMap.addPanControl();
+                _yahooMap.addScaleBar();
+                _yahooMap.addZoomWidget();
+                _yahooMap.addTypeWidget();
+                _yahooMap.addCrosshair();
+                
+                 // create new Geocoder and listen for its GEOCODER_SUCCESS event.
+                _geocoder = new Geocoder();
+                _geocoder.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleInitialGeocodeSuccess);
+                
+                // add event listener for Map_Click
+                _yahooMap.addEventListener(YahooMapEvent.MAP_CLICK, handleMapClick);
+                
+                mapContainer.addEventListener(ResizeEvent.RESIZE, handleContainerResize);
+
+
+
+                mapContainer.addChild(_yahooMap);
+
+                        
+            }
+            
+            private function handleMapInitialize(e:Event):void{
+            	//Center of US: 38,-97 //World: 34,-58
+                var lyonLatLon:LatLon = new LatLon(40,-99);
+                centerYahooMap(lyonLatLon, 14);
+            }
+            
+            private function handleContainerResize(event:ResizeEvent):void{
+                // set the width and height of the map based on the container UIComponent size.
+                _yahooMap.setSize( mapContainer.width, mapContainer.height);
+            }
+
+            private function addCenterMarker(loc:LatLon):void {
+                _centerMarker = new SimpleMarker();
+                _centerMarker.latlon = loc;
+                _yahooMap.markerManager.addMarker(_centerMarker);
+                _yahooMap.centerLatLon = loc;
+                
+            }
+            
+            private function handleMapClick(event:YahooMapEvent):void {
+                //clearMapItems();
+                //addCenterMarker(event.data.latlon);
+                
+                //_geocoder = new Geocoder();
+                //_geocoder.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleReverseGeocoding);
+                //_geocoder.reverseGeocode(_centerMarker.latlon);
+
+            }
+            
+            private function handleReverseGeocoding(event:GeocoderEvent):void {
+                var resultSet:GeocoderResultSet = event.data as GeocoderResultSet;
+                var firstResult:GeocoderResult = resultSet.firstResult;
+                
+                _yahooMap.zoomLevel = firstResult.zoomLevel+3; 
+                //mapBox.status = firstResult.getLineAddress();
+                //address.text  = firstResult.getLineAddress();
+            }
+            
+            private function centerYahooMap(_latLon:LatLon, zoom:Number = 10):void{
+                
+                _yahooMap.centerLatLon = _latLon;
+                
+                _yahooMap.zoomLevel = zoom;
+                
+                _geocoder.reverseGeocode(_yahooMap.centerLatLon);                
+            }
+            
+            private function handleFind():void {
+                this.clearMapItems();
+                
+                if (_centerMarker != null){
+                    searchAndShow(_centerMarker.latlon);
+                }
+                //else if (this.address.text != "") {
+                //    _addressToFind = new Address(address.text); 
+                //    _addressToFind.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleGeocodeSuccess);
+                //    _addressToFind.geocode(); 
+                //}
+                else {
+                    Alert.show('Need either type in address or click map to locate a point.', 'Missing Input', mx.controls.Alert.OK);
+                }
+            }
+
+            
+            private function handleInitialGeocodeSuccess(event:GeocoderEvent):void {
+                // get the GeocoderResultSet containing each result returned by the geocoder.
+                var resultSet:GeocoderResultSet = event.data as GeocoderResultSet;
+                
+                // grab the first (highest-quality) result.
+                var firstResult:GeocoderResult = resultSet.firstResult;
+                
+                // get the full address string of the result.
+                _centerAddressStr = firstResult.getLineAddress();
+            }
+            
+            private function handleGeocodeSuccess(event:GeocoderEvent):void {
+                var result:GeocoderResult = Address(event.target).geocoderResultSet.firstResult;
+                // get the full address string of the result.
+                _centerAddressStr = result.getLineAddress();
+                //Alert.show(_centerAddressStr);
+                //_yahooMap.zoomLevel = result.zoomLevel+3; 
+                addCenterMarker(result.latlon);
+                searchAndShow(result.latlon);
+            }
+            
+            private function searchAndShow(loc:LatLon):void {
+            //	drawCircle(_yahooMap.centerLatLon, Number(this.withinMiles.value));
+            	drawCircle(_yahooMap.centerLatLon, Number(25));
+            	//var m:String = ExternalInterface.call("getDriveTimePoly", 
+                //                                      _yahooMap.centerLatLon.lat.toString(), 
+                //                                      _yahooMap.centerLatLon.lon.toString(), 
+                //                                      this.driveTime.value);
+            	//signalData.addEventListener(Event.COMPLETE, handleSignalDataComplete);
+            	//if (dataRange == "daily") {
+		  		//      	signalData.loadData(CONTEXT_URL + "/signal_strengths/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml?lat=" + loc.lat.toString() + "&lng=" + loc.lon.toString() + "&startsignal=" + signalStrength.values[0] + "&endsignal=" + signalStrength.values[1] + "&radius=" + withinMiles.value);
+		  		//signalData.loadData(CONTEXT_URL + "/signal_strengths/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml?lat=" + loc.lat.toString() + "&lng=" + loc.lon.toString() + "&startsignal=" + 1 + "&endsignal=" + 2 + "&radius=" + 1);
+            	//	//Alert.show(CONTEXT_URL + "/signal_strengths/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml?lat=" + loc.lat.toString() + "&lng=" + loc.lon.toString() + "&startsignal=" + signalStrength.values[0] + "&endsignal=" + signalStrength.values[1] + "&radius=" + withinMiles.value,'test');
+            	//} else {
+            	//	signalData.loadData(CONTEXT_URL + "/signal_strengths/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+            	//}
+            }
+            
+            private function handleSignalDataComplete(event:Event):void {
+            	//Excellent: 100%-76% - BLUE
+            	//Good: 75%-51% - GREEN
+            	//Fair: 50%-26% - YELLOW
+            	//Poor: 25%-1% - GREY
+            	_searchMarkers = new Array();
+                
+                var IconUrl:String;
+                var blueIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-blue-icon.png";
+                var greenIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-green-icon.png";
+                var yellowIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-yellow-icon.png";
+                var greyIconUrl:String = CONTEXT_URL + "/bin/com/mxplay/analytics/assets/wireless/wireless-grey-icon.png";
+                var title:String;
+                var summary:String;
+                var locallatlon:LatLon;
+                var bgColor:uint;
+                var i:int=0;
+                for each (var prop:XML in signalData.appXML.signal_strength)
+                {
+                	// latlon
+                	locallatlon = new LatLon(prop.lat,prop.lng);
+                	// title
+                	if (prop.server_signal > 75)
+                	{
+                		title = "Signal Strength: EXCELLENT (" + prop.server_date + ")";
+                		IconUrl = blueIconUrl;
+                		bgColor = 0x0033ff;
+                	}
+                	else if (prop.server_signal <= 75 && prop.server_signal >= 51)
+                	{
+                		title = "Signal Strength: GOOD (" + prop.server_date + ")";
+                		IconUrl = greenIconUrl;
+                		bgColor = 0x66ff66;
+                	}
+                	else if (prop.server_signal <= 50 && prop.server_signal >= 26)
+                	{
+                		title = "Signal Strength: FAIR (" + prop.server_date + ")";
+                		IconUrl = yellowIconUrl;
+                		bgColor = 0xffff00;
+                	}
+                	else
+                	{
+                		title = "Signal Strength: POOR (" + prop.server_date + ")";
+                		IconUrl = greyIconUrl;
+                		bgColor = 0x26333b;
+                	}
+                	// summary
+                	summary = "Actual Signal Strength: "+ prop.server_signal + "%";
+                	// creating xmlItem for local search item
+                	var str:String = "<listing><title>"+title+"</title><zip>"+prop.zip+"</zip><city>"+prop.city+"</city><state>"+prop.state+"</state></listing>";
+                	var xmlItem:XML = new XML(str);
+                    // creating a new local search item
+	                var myLocalSearchItem:LocalSearchItem = 
+	                    new LocalSearchItem(xmlItem);
+                    _yahooMarker = new CustomIconMarker2(locallatlon, myLocalSearchItem, bgColor, 0xFFFFFF, 0x000000, summary, IconUrl);
+                    
+                    _yahooMap.markerManager.addMarker(_yahooMarker);
+                    _searchMarkers[i] = _yahooMarker;    
+                    i++;
+                }
+                /*var str:String = "<listing><title>tittle</title><addr>Str. Florica, nr. 26, sector 5</addr><city>Bucuresti</city><state>Bucuresti</state></listing>";
+            	var xmlItem:XML = new XML(str);
+            	
+                // creating a new local search item
+                var myLocalSearchItem:LocalSearchItem = 
+                    new LocalSearchItem(xmlItem);
+                //var marker:SearchMarker = new SearchMarker(myLocalSearchItem);
+                //_yahooMarker = new CustomMarker(0x26333b, _centerMarker.latlon, 
+                //    myLocalSearchItem, "http://www.designit.ro");
+                _yahooMarker = new CustomIconMarker2(_centerMarker.latlon, myLocalSearchItem, 0x66ff66, 0xFFFFFF, 0x000000, "Signal Strenght %", "http://localhost:3000/bin/com/mxplay/analytics/assets/wireless/wireless-green-icon.png");
+                _yahooMap.markerManager.addMarker(_yahooMarker);*/
+            }
+            
+            private function drawCircle(point:LatLon, miles:Number):void {
+                _circleOverlay = new CircleOverlay(point, Distance.milesToMeters(miles));
+            
+	            _yahooMap.overlayManager.addOverlay(_circleOverlay);
+	            
+	            _circleOverlay.fillColor = 0xFF0000;
+	            _circleOverlay.fillAlpha = .5;
+	            _circleOverlay.lineColor = 0x000080;
+	            _circleOverlay.lineAlpha = 0.75;
+	            _circleOverlay.lineThickness = 2;
+	            _circleOverlay.mouseEnabled = false;
+	            
+	            _circleOverlay.redraw();
+                //_yahooMap.overlayManager.addOverlay(_circleOverlay);
+                //_yahooMap.zoomLevel = _yahooMap.zoomLevel + 1;
+                
+            }
+            
+            public function createDriveTimePoly(geomtry:Array, index:int):String {
+                var colors:Array = [0x009999, 0x00FF99, 0x9999FF]
+                var poly:Array = new Array();        
+                
+                _drivingOverlay = new PolylineOverlay();
+                
+                _drivingOverlay.mouseEnabled=false;
+                _drivingOverlay.fillColor = colors[index % 3];
+                _drivingOverlay.hasFill = true;
+                _drivingOverlay.fillAlpha = 0.30;
+                _drivingOverlay.lineColor = 0xFFFF80;
+                _drivingOverlay.lineThickness = 2;
+                _drivingOverlay.lineAlpha = 0.60;
+                _yahooMap.overlayManager.addOverlay(_drivingOverlay);
+                                                            
+                for( var i:int =0; i=geomtry.length; i++){
+                    var a:Array = geomtry.pop() as Array;
+                    var lon:Number = Number(a[0]);
+                    var lat:Number = Number(a[1]);
+                    var point:LatLon = new LatLon(lat, lon);
+                    poly.push(point);
+                }
+                // pass latlon values into the polyline data provider to draw the overlay. 
+                _drivingOverlay.dataProvider = poly;
+                _yahooMap.zoomLevel = _yahooMap.zoomLevel - 1;
+                 
+                return "done";
+            } 
+            
+            private function clearMapItems():void {
+                if( _centerMarker != null ) {
+                    _yahooMap.markerManager.removeMarker(_centerMarker);
+                    _centerMarker = null;
+                }
+                
+                if (_circleOverlay != null){
+                    _yahooMap.overlayManager.removeOverlay(_circleOverlay);
+                    _circleOverlay = null;
+                }
+                
+                if (_searchMarkers != null){
+                    for( var i:int =0; i< _searchMarkers.length; i++) {
+                        _yahooMap.markerManager.removeMarker(_searchMarkers[i]);
+                    }
+                    _searchMarkers = null;
+                }
+                
+                if (_drivingOverlay != null ) {
+                    _yahooMap.overlayManager.removeOverlay(_drivingOverlay);
+                    _drivingOverlay = null;
+                }
+            }
+            
+                
+            private function doGeolocateIP():void{
+                //var ipToSend:String = ipAddress.text;
+                //getIPLocation.send({ip:ipToSend});
+                ipData.addEventListener(Event.COMPLETE, updateIp);
+                
+                if (dataRange == "daily") {
+		        	ipData.loadData(CONTEXT_URL + "/ips/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml");
+            	} else {
+            		ipData.loadData(CONTEXT_URL + "/ips/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+            	}
+            }
+            
+            private function updateIp(event:Event):void {
+            	//for each (var prop:XML in ipData.appXML.ip) {
+            	//	getIPLocation.send({ip:prop.server_ip});
+            	//}
+            }
+           
+            private function resultHandler(event:ResultEvent):void{
+                var resultString:String = String (event.result);
+                //ipAddress.text = resultString;
+            }
+           
+            private function faultHandler(event:FaultEvent):void{
+                var faultstring:String = event.fault.faultString;
+                //Alert.show(faultstring);
+                CursorManager.removeBusyCursor();
+            }
+            
+            // Event handler for the ADG control change event.
+            public function locChanged(event:Event):void {
+                var lat:Number = AdvancedDataGrid(event.target).selectedItem.lat;
+                var lon:Number = AdvancedDataGrid(event.target).selectedItem.lon;
+				if (lat && lon) {
+                	var latlon:LatLon = new LatLon(lat, lon);
+                	centerYahooMap(latlon, 5);
+    			}
+            }
+        ]]>
+    </mx:Script>
+	<mx:ViewStack
+		id="viewStack"
+		selectedIndex="{selectedViewIndex}"
+		width="100%" height="100%">
+		<mx:Canvas width="100%" height="100%" label="Location Overview"
+	    creationComplete="creationCompleteHandler(event);"	>
+	    <mx:HBox width="100%" height="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+		    <mx:Canvas id="panelTab" width="80%" height="100%">
+		    	<mx:VDividedBox width="100%" height="100%" paddingTop="30">
+		    		<mx:UIComponent id="mapContainer" width="100%" height="100%"/>
+		    		<mx:AdvancedDataGrid id="myADG" width="100%" height="0" color="0x323232" change="locChanged(event)" initialize="gc.refresh();">        
+			            <mx:dataProvider>
+			                <mx:GroupingCollection id="gc">
+			                    <mx:grouping>
+			                        <mx:Grouping>
+			                            <mx:GroupingField name="Country"/>
+			                            <mx:GroupingField name="State"/>
+			                        </mx:Grouping>
+			                    </mx:grouping>
+			                </mx:GroupingCollection>
+			            </mx:dataProvider>        
+			            <mx:columns>
+			                <mx:AdvancedDataGridColumn width="150" dataField="Country" headerText="Country"/>
+			                <mx:AdvancedDataGridColumn dataField="State" headerText="State" />
+			                <mx:AdvancedDataGridColumn dataField="Region" headerText="Region"/>
+			                <mx:AdvancedDataGridColumn dataField="City" headerText="City"/>
+			                <mx:AdvancedDataGridColumn dataField="Zip" headerText="Zip"/>
+			            </mx:columns>
+			       </mx:AdvancedDataGrid>
+		    	</mx:VDividedBox>
+			</mx:Canvas>
+			<mx:Panel id="formPanel" height="100%" width="20%" title="FIND" horizontalAlign="left" styleName="opaquePanel">
+				<mx:Grid width="90%" paddingTop="5">
+					<mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"><mx:Label id="dateDisplay" text="{dateChangeHandlerDisplay(Settings.dateSel)}" /></mx:GridItem>
+	                </mx:GridRow>
+				<!--
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"><mx:Label text="Address: "/></mx:GridItem>
+	                    <mx:GridItem><mx:TextInput id="address" width="185" text=""/></mx:GridItem>
+	                </mx:GridRow>
+	                -->
+	            </mx:Grid>
+	            <mx:Spacer height="10"/>
+    			
+    			<mx:Grid>                
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"><mx:Label text="Hours: "/></mx:GridItem>
+	                    <mx:GridItem>
+	                    	<mx:HSlider id="signalStrength" minimum="0" maximum="24" thumbCount="2" values="[0,24]" dataTipPlacement="top" tickColor="0xffffff"
+            					snapInterval="1" tickInterval="24" labels="['12AM','12PM','24PM']" allowTrackClick="true" 
+            					liveDragging="true" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow>
+	                    <mx:GridItem horizontalAlign="right"></mx:GridItem>
+	                    <mx:GridItem horizontalAlign="right"><mx:Button id="search" label="Find" click="handleFind()"/></mx:GridItem>
+	                </mx:GridRow>
+	            </mx:Grid>
+	            
+	            <mx:Grid>
+	            	<mx:GridRow>
+	            		<mx:GridItem horizontalAlign="left">
+	            			<mx:ComboBox id="cbHandset"
+								dataProvider="['HERO200-ANDRIOD', 'KYOCERA-SCP-2700', 'LX-160']" />
+								<!--selectedIndex="{_selectedViewIndex}"
+								change="onChangeComboBox(event)" /> -->
+	            		</mx:GridItem>
+	            		<mx:GridItem horizontalAlign="right">
+	            			<mx:Button id="addHS" label="Add" click="onCombBoxAddButtonClicked(event)"/>
+	            		</mx:GridItem>
+	            	</mx:GridRow>
+	            </mx:Grid>
+	            
+	            
+	            
+	            <mx:Button label="Clear Map" click="_yahooMap.markerManager.removeAllMarkers();_yahooMap.overlayManager.removeAllOverlays();" />
+	            <mx:Label text="Handsets: "/>
+	            <mx:VBox id="resultInfo" width="90%" height="50%" paddingLeft="5" paddingTop="5" verticalGap="2">
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FF0000" borderStyle="solid" borderThickness="2" 
+                             backgroundAlpha="0.1" backgroundColor="#FF0000" 
+                             width="45" height="45" cornerRadius="50"/>
+                    <mx:Label text="HERO200-ANDRIOD"/>
+                </mx:HBox>
+                <!--
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FF0000" borderStyle="solid" borderThickness="2" 
+                             backgroundAlpha="0.1" backgroundColor="#FF0000" 
+                             width="45" height="45" cornerRadius="50"/>
+                    <mx:Label text="{withinMiles.value} miles circle"/>
+                </mx:HBox>
+                -->
+        <!--        <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#0033ff" 
+                             width="15" height="15" cornerRadius="50"/>
+                    <mx:Label text="Excellent: 100%-76%"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#66ff66" 
+                             width="15" height="15" cornerRadius="50"/>
+                    <mx:Label text="Good: 75%-51%"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#ffff00" 
+                             width="15" height="15" cornerRadius="50"/>
+                    <mx:Label text="Fair: 50%-26%"/>
+                </mx:HBox>
+                <mx:HBox verticalAlign="middle">
+                    <mx:HBox borderColor="#FFFFFF" borderStyle="solid" borderThickness="1" 
+                             backgroundAlpha="1" backgroundColor="#26333b" 
+                             width="15" height="15" cornerRadius="50"/>
+                    <mx:Label text="Poor: 25%-1%"/>
+                </mx:HBox>
+              -->
+            	</mx:VBox>
+			</mx:Panel>
+		</mx:HBox>
+		
+	</mx:Canvas>
+	</mx:ViewStack>
+</PodContentBase>

@@ -1,0 +1,81 @@
+quentin:
+  id: 1
+  login: quentin
+  email: quentin@example.com
+  salt: 7e3041ebc2fc05a40c60028e2c4901a81035d3cd
+  crypted_password: 00742970dc9e6319f8019fd54864d3ea740f04b1 # test
+  created_at: <%= 5.days.ago.to_s :db %>
+
+
+
+lramos:
+  id: 3
+  login: lramos
+  first_name: Luis
+  last_name: Ramos
+  email: lramos@smithmicro.com
+  salt: cf1bc466e9dedd7d687e967ba37947971d44ab6e
+  crypted_password: fc3f2237b0edbeab2c08eecbc7bd6ef9b2124080 # foooo
+  created_at: <%= 1.days.ago.to_s :db %>
+
+
+wolfgang:
+  id: 4
+  login: wolfgang
+  first_name: Wolf
+  last_name: Gang
+  email: wolfgang@example.com
+  salt: 7e3041ebc2fc05a40c60028e2c4901a81035d3cd
+  crypted_password: 00742970dc9e6319f8019fd54864d3ea740f04b1 # test
+  created_at: <%= 5.days.ago.to_s :db %>
+
+
+
+aaron:
+  id: 2
+  login: aaron
+  email: aaron@example.com
+  salt: 7e3041ebc2fc05a40c60028e2c4901a81035d3cd
+  crypted_password: 00742970dc9e6319f8019fd54864d3ea740f04b1 # test
+  created_at: <%= 1.days.ago.to_s :db %>
+  
+  
+cmdemo:
+  id: 5
+  login: cmdemo
+  first_name: cmdemo
+  last_name: cmdemo
+  email: cmdemo@smithmicro.com
+  salt: 7e3041ebc2fc05a40c60028e2c4901a81035d3cd
+  crypted_password: 00742970dc9e6319f8019fd54864d3ea740f04b1 # test
+  created_at: <%= 5.days.ago.to_s :db %> 
+  
+chall:
+  id: 6
+  login: chall
+  first_name: Christopher
+  last_name: Hall
+  email: chall@smithmicro.com
+  salt: 7e3041ebc2fc05a40c60028e2c4901a81035d3cd
+  crypted_password: 00742970dc9e6319f8019fd54864d3ea740f04b1 # test
+  created_at: <%= 5.days.ago.to_s :db %> 
+  
+ydresser:
+  id: 7
+  login: ydresser
+  first_name: Yvonne
+  last_name: Dresser
+  email: ydresser@smithmicro.com
+  salt: 7e3041ebc2fc05a40c60028e2c4901a81035d3cd
+  crypted_password: 00742970dc9e6319f8019fd54864d3ea740f04b1 # test
+  created_at: <%= 5.days.ago.to_s :db %>   
+  
+ifong:
+  id: 8
+  login: ifong
+  first_name: I-Ching
+  last_name: Fong
+  email: ifong@smithmicro.com
+  salt: 7e3041ebc2fc05a40c60028e2c4901a81035d3cd
+  crypted_password: 00742970dc9e6319f8019fd54864d3ea740f04b1 # test
+  created_at: <%= 5.days.ago.to_s :db %>

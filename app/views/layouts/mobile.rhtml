@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta content="width=320; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" name="viewport"/>
+		<meta http-equiv="Content-Language" content="en-us" />
+		<%= stylesheet_link_tag "mobile" %>
+		<%= yield :head %>
+	</head>
+	<body id="library">
+		<div id="header">
+			<a href=""><%= image_tag "../bin/com/mxplay/analytics/assets/smsi_logo_mobile.png" %><span style="font-size: 12px; color: white; font-family:lucida console;"> | Analytics</span></a>
+		</div>
+		<%= yield -%>
+		<div id="footer">
+			View in:  
+			<form action="" method="post" style="display: inline;">
+				<input type="submit" value="Standard" class="b"/>
+			</form>
+			<% if logged_in? %>
+			  <%= link_to "Logout", logout_path, :method => :delete, :confirm => "Are you sure you want to logout?" %>
+			<% else %>
+			  
+			<% end %>
+			<br/>&copy; 2009 SmithMicro
+		</div>
+	</body>
+</html>

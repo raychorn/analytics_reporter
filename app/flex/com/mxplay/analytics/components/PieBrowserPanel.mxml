@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:head="com.mxplay.analytics.layout.*"
+	width="100%" height="100%" backgroundAlpha=".4"
+	horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	<head:GlassHeaders headerTitle="BROWSER STATISTICS" />
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.List;
+			import mx.controls.Alert;
+			import flash.events.Event;
+			import mx.charts.events.LegendMouseEvent;
+			import mx.charts.HitData;
+			import mx.rpc.events.ResultEvent;
+			import mx.collections.ArrayCollection;
+			import com.mxplay.analytics.util.AppXML;
+			
+			private const CONTEXT_URL:String = Settings.SiteUrl;
+			
+			[Bindable] public var dataRange:String = Settings.dataRange;
+			
+			[Bindable] private var systemsData:AppXML = new AppXML();
+		
+			[Bindable] var selection:String;
+			[Bindable] var year:String;
+			[Bindable] var month:String;
+			[Bindable] var day:String;
+						
+			[Bindable]
+		     public var browsers:ArrayCollection = new ArrayCollection([
+		        {Label:"Windows XP", Amount:0},
+		        {Label:"Windows Vista", Amount:0},
+		        {Label:"Windows 7", Amount:0}
+		     ]);
+		     
+		    public function dataRangeHandler(range:Object):void {
+				dataRange = range.data;
+				dateChangeHandler(Settings.dateSel);
+		    }
+		    
+		    public function dateChangeHandler(date:Date):void {
+		    	if (date == null) {
+	            	date = Settings.dateSel;
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	            	if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            } else {
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	                if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            }
+	            getData();
+		    }
+		     
+		    private function updateSystems(event:Event):void {
+		    	var xp:Number = 0;
+		    	var vista:int = 0;
+		    	var win7:int = 0;
+            	for each (var prop:XML in systemsData.appXML.system)
+            	{
+            		if ( (prop.server_os).search("5.1") == 0 ){
+            			xp += parseInt(prop.server_count);
+            		}
+            		else if ( (prop.server_os).search("6.0") == 0 ){
+            			vista += parseInt(prop.server_count);
+            		}
+            		else if ( (prop.server_os).search("6.1") == 0 ){
+            			win7 += parseInt(prop.server_count);
+            		}
+            	}
+            	//Update Pie Chart
+            	browsers[0]["Amount"] = xp;
+            	browsers[1]["Amount"] = vista;
+            	browsers[2]["Amount"] = win7;
+            	browsers[0]["Label"] = "Windows XP" + " (" + xp + ")";
+            	browsers[1]["Label"] = "Windows Vista" + " (" + vista + ")";
+            	browsers[2]["Label"] = "Windows 7" + " (" + win7 + ")";
+            	browserPie.dataProvider = browsers;
+            	Analytics.debug("XP = " + xp);
+            	//Update Application Usage Labels
+            	//lblXp.label = xp.toString();
+            	//lblVista.label = vista.toString();
+            	//lblWin7.label = win7.toString();
+		    }
+		    
+		    public function getData():void {
+            	//Create Event Listeners
+            	systemsData.addEventListener(Event.COMPLETE, updateSystems);
+            	//eventsData.addEventListener(Event.COMPLETE, updateEvents);
+            	//devicesData.addEventListener(Event.COMPLETE, updateDevices);
+            	//Load Data/URL
+            	if (dataRange == "daily") {
+		        	systemsData.loadData(CONTEXT_URL + "/systems/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml");
+		        //	eventsData.loadData(CONTEXT_URL + "/events/" + year + "/" + month + "/" + day + ".xml");
+		        	//devicesData.loadData(CONTEXT_URL + "/devices/" + year + "/" + month + "/" + day + ".xml");
+            	} else {
+            		systemsData.loadData(CONTEXT_URL + "/systems/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+		        //	eventsData.loadData(CONTEXT_URL + "/events/monthly/" + year + "/" + month + ".xml");
+		        	//devicesData.loadData(CONTEXT_URL + "/devices/monthly/" + year + "/" + month + ".xml");
+            	}
+            }
+            
+            public function creationCompleteHandler(myChart:PieChart):void {
+				//var newMsg:TextField = myChart.getChildAt(myChart.numChildren-1) as TextField;
+				//newMsg.htmlText = "";
+			}
+		]]>
+	</mx:Script>
+	<mx:Script>
+		<![CDATA[
+			private var pieSeries : PieSeries;
+			private var delayTimer: Timer;
+ 
+			//Boolean value to make sure that the animation is smooth and that the correct item is exploded.
+			//the item out event gets fired when the mouse moves from label to the marker
+			private var over : Boolean = false;
+			//explode the section of the chart that was just moused over in the legend
+			private function explode(event : LegendMouseEvent) : void {
+			  if(delayTimer){//this will stop the legend, pie chart flickering as the user moves mouse from the label to the marker
+			     delayTimer.stop();
+			     delayTimer.removeEventListener(TimerEvent.TIMER, callAfterDelay);
+			  }
+			 
+			  var len : Number = PieSeries(event.item.source).legendData.length;
+			  var index : Number = 0;
+			  var arr:Array = new Array(len);
+			  if(over){
+			    event.item.alpha = 0.70;
+			  } else {
+			    event.item.alpha = 0.70;
+			    for(var i : Number = 0; i < len ; i++){
+			      //set the explode radius on the item that fired the over event
+			      //and make sure that the rest of the exploded radii are 0
+			      if(event.item.label == event.item.source.legendData[i].label){
+			        index = i;
+			        arr[i] = 0.1;
+			      }else {
+				arr[i] = 0;
+			      }
+			    }
+			    PieSeries(event.item.element).perWedgeExplodeRadius = arr;
+			    over = true;//set the flag to true
+			  }
+			}
+			 
+			//on the mouse out event this gets called, start a timer in case the user is just moving from label to marker or vice-versa
+			private function implode(event : LegendMouseEvent) : void {
+			  delayTimer = new Timer(200, 1);
+			  delayTimer.addEventListener(TimerEvent.TIMER, callAfterDelay, false, 0, true);
+			  delayTimer.start();
+			  pieSeries = PieSeries(event.item.element);
+			  over = false;//if you don't reset this then when the user moves the mouse down the list nothing will happen
+			}
+			 
+			//This gets called if the timer has finished (mouse has been of legend for a set amount of time)
+			private function callAfterDelay(event : TimerEvent) : void {
+			  var arr : Array = [];
+			  pieSeries.perWedgeExplodeRadius = arr;
+			}
+			
+			private function returnToolTip(hitData:HitData):String {
+			    return hitData.item.name + ' ' +hitData.item.value + '';
+			}
+		]]>
+	</mx:Script>
+	<mx:HBox width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
+		<mx:PieChart id="browserPie" 
+	        dataProvider="{browsers}" 
+	        showDataTips="true" 
+	        height="100%" width="100%" innerRadius=".4"
+	        creationComplete="creationCompleteHandler(this.browserPie)" >
+	        <mx:series>
+	           <mx:PieSeries 
+	                field="Amount" 
+	                nameField="Label" 
+	                labelPosition="none">
+	                <mx:showDataEffect>
+	                    <mx:SeriesInterpolate duration="1000" />
+	                </mx:showDataEffect>
+	                <mx:filters>
+                        <mx:Array/>
+                    </mx:filters>
+                    <mx:fills>
+                    <mx:SolidColor color="0x9966CC" alpha=".8"/>
+                    <mx:SolidColor color="0x9999CC" alpha=".8"/>
+                    <mx:SolidColor color="0x6699CC" alpha=".8"/>
+                    <mx:SolidColor color="0x669999" alpha=".8"/>
+                    <mx:SolidColor color="0x99CC99" alpha=".8"/>
+                	</mx:fills>
+	           </mx:PieSeries>
+	        </mx:series>
+	     </mx:PieChart>
+	     <mx:Legend dataProvider="{browserPie}"
+                direction="vertical"
+                verticalGap="5"
+                markerWidth="10"
+                markerHeight="10"
+                width="100%"
+                itemMouseOver="explode(event)"
+      			itemMouseOut="implode(event)"
+      		  />
+    </mx:HBox>
+    <mx:ControlBar>
+    </mx:ControlBar>
+</mx:Canvas>

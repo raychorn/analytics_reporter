@@ -1,0 +1,68 @@
+ <records type="array">
+	<record>
+		<deviceMFG>Huawei</deviceMFG>
+		<deviceModel>E169</deviceModel>
+		<numModel>10,009</numModel>
+		<percentModel>10%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Kyocera</deviceMFG>
+		<deviceModel>KP650</deviceModel>
+		<numModel>15,776</numModel>
+		<percentModel>9%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Novatel</deviceMFG>
+		<deviceModel>C201</deviceModel>
+		<numModel>26,003</numModel>
+		<percentModel>7%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Novatel</deviceMFG>
+		<deviceModel>U520</deviceModel>
+		<numModel>210,767</numModel>
+		<percentModel>7%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Novatel</deviceMFG>
+		<deviceModel>U760</deviceModel>
+		<numModel>87,252</numModel>
+		<percentModel>6%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Sierra Wireless</deviceMFG>
+		<deviceModel>Aircard 750</deviceModel>
+		<numModel>200,478</numModel>
+		<percentModel>5%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Sierra Wireless</deviceMFG>
+		<deviceModel>Aircard 875u</deviceModel>
+		<numModel>52,987</numModel>
+		<percentModel>5%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Sony Ericsson</deviceMFG>
+		<deviceModel>GC79</deviceModel>
+		<numModel>69,012</numModel>
+		<percentModel>5%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>ZTE</deviceMFG>
+		<deviceModel>MF630</deviceModel>
+		<numModel>103,368</numModel>
+		<percentModel>4%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>ZTE</deviceMFG>
+		<deviceModel>MZ10</deviceModel>
+		<numModel>97,567</numModel>
+		<percentModel>3%</percentModel>
+	</record>
+	<record>
+		<deviceMFG>Option</deviceMFG>
+		<deviceModel>GT Fusion HSDPA</deviceModel>
+		<numModel>39,546</numModel>
+		<percentModel>3%</percentModel>
+	</record>
+</records>

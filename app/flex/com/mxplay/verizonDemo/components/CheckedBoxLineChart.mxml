@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" width="100%" height="100%" verticalScrollPolicy="off">
+	
+	<mx:Script>
+        <![CDATA[
+        	import mx.charts.effects.SeriesInterpolate;
+        	import mx.rpc.events.ResultEvent;
+        	import mx.rpc.http.HTTPService;
+            import mx.managers.SystemManager;
+            import mx.events.ResizeEvent;
+            import mx.graphics.Stroke;
+            import mx.graphics.SolidColor;
+            import mx.collections.ArrayCollection;
+            import mx.events.DividerEvent;
+            import mx.managers.SystemManager;
+            import mx.charts.renderers.*;
+            import mx.charts.series.LineSeries;
+            import mx.controls.Alert;
+            import com.mxplay.analytics.util.EmptySkin;
+            
+            private const CONTEXT_URL:String = Settings.SiteUrl;
+            private var DATA_LENGTH:Number = 500;
+            
+            private var leftStart = 0;
+            private var rightStart = 0;
+            [Bindable] public var chartData:ArrayCollection;
+            [Bindable] public var mainData:ArrayCollection;
+            //[Bindable] public var origData:ArrayCollection;
+            
+            //Defines Month/Day Data Ranges
+            [Bindable] public var dataRange:String = Settings.dataRange;
+            
+            //Variable for Checking how many Checked Boxes are Currently Checked
+            [Bindable] private var checkedBoxes:int = 1;
+            
+           /* Some customizable colors for the ara fill and stroke. */
+            [Bindable]
+            public var areaColor:SolidColor = new SolidColor(0x0033CC, 0.5);
+            
+            [Bindable]
+            public var areaStroke:Stroke = new Stroke(0x0033CC, 2);
+            
+            [Bindable]
+            public var lineStroke:Stroke = new Stroke(0x0033CC, 2);
+            
+            public var selectedColor:uint = new uint;
+            
+            /* Two spacer heights, these are used to determine the layout of the
+             * small chart versus the big chart.
+             */
+            [Bindable] 
+            public var gapBetweenCharts:Number = 0;
+            
+            [Bindable] 
+            public var gapAtBottom:Number = 0;
+            
+            /* Some customizable variables to affect the layout of the axes */
+            [Bindable]
+            public var horizontalAxisPlacement:String = "none";
+            
+            [Bindable]
+            public var verticalAxisPlacement:String = "none";
+            
+            // variables 
+            [Inspectable(defaultValue="Successful WWAN Connections")] private var _label1:String;
+            [Inspectable(defaultValue="Dropped WWAN Connections")] private var _label2:String;
+            [Inspectable(defaultValue="WWAN Connects w/h VPN")] private var _label3:String;
+            [Inspectable(defaultValue="Successful Wi-Fi Connects")] private var _label4:String;
+            [Inspectable(defaultValue="http://localhost:3000/bin/test-data.xml")] private var _dataUrl1:String;
+            [Inspectable(defaultValue="http://localhost:3000/bin/test-data1.xml")] private var _dataUrl2:String;
+            [Inspectable(defaultValue="http://localhost:3000/bin/test-data2.xml")] private var _dataUrl3:String;
+            [Inspectable(defaultValue="http://localhost:3000/bin/test-data3.xml")] private var _dataUrl4:String;
+            
+            public function set label1 (context:String):void 
+            {	
+				_label1 = context;
+				//Alert.show(_label1.toString(), "label1");
+            }
+            
+            public function get label1():String 
+            {
+                return _label1;
+            }  
+            
+            public function set label2 (context:String):void 
+            {	
+				_label2 = context;
+				//Alert.show(_label2.toString(), "label2");
+            }
+            
+            public function get label2():String 
+            {
+                return _label2;
+            }  
+            
+            public function set label3 (context:String):void 
+            {	
+				_label3 = context;
+            }
+            
+            public function get label3():String 
+            {
+                return _label3;
+            }  
+            
+            public function set label4 (context:String):void 
+            {	
+				_label4 = context;
+            }
+            
+            public function get label4():String 
+            {
+                return _label4;
+            }  
+            
+            public function set dataUrl1 (context:String):void 
+            {	
+				_dataUrl1 = context;
+				//Alert.show(_dataUrl1.toString(), "_dataUrl1");
+            }
+            
+            public function get dataUrl1():String 
+            {
+                return _dataUrl1;
+            }  
+            
+            public function set dataUrl2 (context:String):void 
+            {	
+				_dataUrl2 = context;
+            }
+            
+            public function get dataUrl2():String 
+            {
+                return _dataUrl2;
+            }  
+            
+             public function set dataUrl3 (context:String):void 
+            {	
+				_dataUrl3 = context;
+            }
+            
+            public function get dataUrl3():String 
+            {
+                return _dataUrl3;
+            }  
+            
+             public function set dataUrl4 (context:String):void 
+            {	
+				_dataUrl4 = context;
+            }
+            
+            public function get dataUrl4():String 
+            {
+                return _dataUrl4;
+            }  
+            //-----------------------------------------------------------------------------------------------------
+            
+            public function clearChart():void {
+            	var tmp:Array = new Array()
+            	if (lineChart != null)
+            		lineChart.series = tmp;
+            }
+            
+             public function initLabelChart():void {
+            	cbEvent1.label = _label1;
+            	cbEvent2.label = _label2;
+            	cbEvent3.label = _label3;
+            	cbEvent4.label = _label4;
+            }
+            
+            private function getEventName():String {
+           		
+            	var name:String;
+            	// get the server_event type from xml
+            	var event:int = chartData.getItemAt(1).server_event; 
+            	/*
+               	Alert.show(chartData.getItemAt(0).server_total,"Error"); // the first record
+               	Alert.show(chartData.getItemAt(1).server_total,"Error"); // the second record
+            	*/
+            	switch (event) {
+            		case 1:
+            			//cbEvent1.selected = true;
+            			//name = "Successful WWAN Connections";
+            			name = _label1;
+            		break;
+            		case 2:
+            			//cbEvent2.selected = true;
+            			//name = "Dropped WWAN Connections";
+            			name = _label2;
+            		break;
+            		case 3:
+            			//cbEvent3.selected = true;
+            			//name = "WWAN Connects w/h VPN";
+            			name = _label3;
+            		break;
+            		case 4:
+            			//cbEvent4.selected = true;		
+            			//name = "Successful Wi-Fi Connects";
+            			name = _label4;
+            		break;
+            		default:
+            			name = "Incorrect Event";
+            		break;
+            	}
+            	name = "Event";
+            	return name;
+            }
+            public function enableCheckbox ():void {
+				cbEvent1.enabled = true;
+				cbEvent2.enabled = true;
+				cbEvent3.enabled = true;
+				cbEvent4.enabled = true;
+			}
+			
+			public function disableCheckbox ():void {
+				cbEvent1.enabled = false;
+				cbEvent2.enabled = false;
+				cbEvent3.enabled = false;
+				cbEvent4.enabled = false;
+			}
+            
+            private function modifyChart():void {
+				//chart1.addEventListener(Event.CHANGE, disableCheckbox);
+				var num:int = 0;
+				//disableCheckbox();
+				clearChart();
+				
+				// *** read sever_event sorted files
+				if(cbEvent1.selected == true){   
+					num++;
+					//cbEvent1.label = _label1;
+					//loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/1.xml");
+					//loadUrl("http://localhost:3000/bin/test-data2.xml");
+					//loadUrl("http://localhost:3000/bin/test-data.xml");
+					//Alert.show(_dataUrl1.toString(),"Error");
+					loadUrl(_dataUrl1);
+				}
+				if(cbEvent2.selected == true){  
+					num++; 
+					//cbEvent2.label = _label2;
+					//loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/2.xml");
+					//loadUrl("http://localhost:3000/bin/test-data1.xml");
+					loadUrl(_dataUrl2);
+				}
+				
+				if(cbEvent3.selected == true){   
+					num++;
+					//loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/3.xml");
+					//loadUrl("http://localhost:3000/bin/test-data2.xml");
+					loadUrl(_dataUrl3);
+				}
+				
+				if(cbEvent4.selected == true){
+					num++;
+					//loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/4.xml");
+					//loadUrl("http://localhost:3000/events/connectivity/daily/2.xml");
+					//loadUrl("http://localhost:3000/bin/test-data3.xml");
+					loadUrl(_dataUrl4);
+				}
+				
+				checkedBoxes = num;
+				if (num == 0)
+					enableCheckbox();
+			}
+            
+            public function loadUrl(url:String):void {
+            	var req:HTTPService = new HTTPService();          	
+            	req.url = url;
+            	req.addEventListener(ResultEvent.RESULT, parseXMLData);
+            	req.send();
+            	//dispatchEvent( new Event(Event.CHANGE, true));
+            }
+              
+            /**
+            * x = server_date
+            * y = server_count
+            */
+            private function parseXMLData(event:ResultEvent):void {          	
+            	chartData = event.result.records.record;
+       			mainData = new ArrayCollection(chartData.source);
+       			//Alert.show(lineChart.series.length.toString(),"Error");
+       			
+            	// create a new line
+            	var ls:LineSeries; 
+				ls = new LineSeries(); 
+				ls.xField = "server_date"; 
+				ls.yField = "view_count";
+				ls.displayName = getEventName();
+				ls.setStyle("lineStroke", new Stroke(selectedColor,3, 3.0));//(Math.random()*15077215+15000, 3, 3.0));
+				ls.dataProvider = chartData; 
+				// add the new line into the line chart source
+				var tmp:Array = lineChart.series; 
+				tmp.push(ls); 
+				lineChart.series = tmp;
+				// update the view 
+				lineChart.invalidateSeriesStyles(); 
+                updateMainData();
+                
+                /*
+                if (bigChart.series.length >= checkedBoxes)
+                	enableCheckbox();
+                else
+                	disableCheckbox();
+                	*/
+                dispatchEvent( new Event(Event.COMPLETE, true));
+            }
+            
+           	private function updateMainData():void
+            {
+                rightStart = chartData.length; // the number of records in chartData
+                mainData.source = chartData.source.slice(leftStart,rightStart);
+            }
+
+
+        ]]>
+    </mx:Script>
+    
+	<mx:ApplicationControlBar height="5%" width="100%">
+		<mx:HBox width="100%" height="100%">
+			<mx:CheckBox id="cbEvent1" label="{_label1}" 
+			click="modifyChart(); selectedColor=0x0033CC" color="#0033CC" width="45"/>
+			<mx:CheckBox id="cbEvent2" label="{_label2}" 
+			click="modifyChart(); selectedColor=0xFF0000" color="#FF0000" width="45"/>
+			<mx:CheckBox id="cbEvent3" label="{_label3}" 
+			click="modifyChart(); selectedColor=0x00FF00" color="#00FF00" width="45"/>
+			<mx:CheckBox id="cbEvent4" label="{_label4}" 
+			click="modifyChart(); selectedColor=0x000000" color="#000000" width="45"/>
+			
+		</mx:HBox>
+	</mx:ApplicationControlBar>
+	<mx:HBox width="100%" height="100%">
+	   	<mx:CartesianChart id="lineChart" 
+	    		width="100%" height="100%"
+	    		gutterLeft="50" gutterRight="50" gutterBottom="60" gutterTop="10"
+	    		showDataTips="true"
+	    		dataProvider="{mainData}" >
+	        
+	        <mx:horizontalAxis>
+	        	<mx:CategoryAxis categoryField="server_date" />
+	        </mx:horizontalAxis>
+	    </mx:CartesianChart>
+	</mx:HBox>
+    <!--<mx:ControlBar>
+        <mx:Legend id="legend" dataProvider="{lineChart}" direction="horizontal" />
+    </mx:ControlBar>-->
+</mx:VBox>

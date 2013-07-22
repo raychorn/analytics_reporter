@@ -1,0 +1,72 @@
+<records type="array"> 
+  <record> 
+    <id type="integer">1</id> 
+    <server_count type="integer">862</server_count> 
+    <server_date>2010-02-11</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">1429</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">10</id> 
+    <server_count type="integer">676</server_count> 
+    <server_date>2010-02-12</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">1174</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-13</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">1112</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-14</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">900</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-15</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">1000</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-16</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">2313</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-17</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">2441</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-18</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">647</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-19</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">234</server_total> 
+  </record> 
+  <record> 
+    <id type="integer">28</id> 
+    <server_count type="integer">662</server_count> 
+    <server_date>2010-02-20</server_date> 
+    <server_event type="integer">1</server_event> 
+    <server_total type="integer">854</server_total> 
+  </record> 
+</records> 

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+			width="100%" height="100%" borderStyle="solid" borderColor="gray" backgroundColor="white" creationComplete="connReq.send()">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+	     	
+			/*
+			[Bindable] public var wwanmbData:ArrayCollection = new ArrayCollection([
+		        {SubPop:"0-25 MB", G3:50, G2:30},
+		        {SubPop:"26-50 MB", G3:40, G2:20},
+		        {SubPop:"51-75 MB", G3:60, G2:40},
+		        {SubPop:"76-150 MB", G3:50, G2:30},
+		        {SubPop:"151-300 MB", G3:40, G2:20},
+		        {SubPop:"301-500 MB", G3:5, G2:6},
+		        {SubPop:"501-999 MB", G3:3, G2:4},
+		        {SubPop:"1-3 GB", G3:1, G2:2}
+     		]);
+     		*/
+     		[Bindable] private var wwanmbData:XMLList;
+     		[Inspectable(defaultValue="http://localhost:3000/bin/bar-test-data.xml")] private var _dataUrl:String;
+     		[Inspectable(defaultValue="xField, yField, displayName")]private var _colSeries1:Array;
+     		[Inspectable(defaultValue="xField, yField, displayName")]private var _colSeries2:Array;
+     				
+     		public function set dataUrl (context:String):void 
+            {	
+				_dataUrl = context;
+            }
+            
+            public function get dataUrl():String 
+            {
+                return _dataUrl;
+            }  
+            
+            public function set colSeries1 (context:Array):void 
+            {	
+				_colSeries1 = context;
+            }
+            
+            public function get colSeries1():Array 
+            {
+                return _colSeries1;
+            }       
+            
+            public function set colSeries2 (context:Array):void 
+            {	
+				_colSeries2 = context;
+            }
+            
+            public function get colSeries2():Array 
+            {
+                return _colSeries2;
+            }               
+            
+           	//---------------------------------------------------------
+            private function dataReqHandler(event:ResultEvent):void {
+				//lineChartData = event.result.events.event;
+				wwanmbData = event.result.event;
+			}
+		]]>
+	</mx:Script>
+	<mx:HTTPService id="connReq" url= "{_dataUrl}" result="dataReqHandler(event);" resultFormat="e4x"/>
+	
+	<mx:ColumnChart id="colWWANMB" dataProvider="{wwanmbData}" showDataTips="true" width="100%" height="100%"> 	
+		 <mx:horizontalAxis>
+	           <mx:CategoryAxis dataProvider="{wwanmbData}" categoryField="subPoP" />
+	        </mx:horizontalAxis>
+	        <mx:series>
+		         <mx:ColumnSet type="stacked">
+	                <mx:series>
+	                <!--
+	                    <mx:ColumnSeries 
+	                        xField="subPoP" 
+	                        yField="G3" 
+	                        displayName="3G"
+	                    />
+	                    <mx:ColumnSeries 
+	                        xField="subPoP" 
+	                        yField="G2" 
+	                        displayName="2G"
+	                    /> -->
+	                    <mx:ColumnSeries 
+	                        xField="{_colSeries1[0]}" 
+	                        yField="{_colSeries1[1]}"  
+	                        displayName="{_colSeries1[2]}" 
+	                    />
+	                    <mx:ColumnSeries 
+	                        xField="{_colSeries2[0]}" 
+	                        yField="{_colSeries2[1]}"  
+	                        displayName="{_colSeries2[2]}" 
+	                    />
+	                </mx:series>
+	            </mx:ColumnSet>  
+            </mx:series>
+        </mx:ColumnChart>
+		<mx:Legend dataProvider="{colWWANMB}" x="533" y="32"/>
+</mx:Canvas>

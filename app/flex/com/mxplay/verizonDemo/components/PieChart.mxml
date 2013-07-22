@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:head="com.mxplay.analytics.layout.*"
+			xmlns:renderers="qs.charts.renderers.*"
+			width="100%" height="100%" backgroundAlpha=".4" 
+			creationComplete="connReq.send()">
+	<!--<head:GlassHeaders headerTitle="Data Usage by OS"/>-->
+	<mx:Style>
+        Legend {
+            horizontalGap: 50;
+            verticalGap: 15;
+        }
+    </mx:Style>
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.List;
+			import mx.controls.Alert;
+			import flash.events.Event;
+			import mx.rpc.events.ResultEvent;
+			import mx.collections.ArrayCollection;
+			import com.mxplay.analytics.util.AppXML;
+			
+			private const CONTEXT_URL:String = Settings.SiteUrl;
+			
+			[Bindable] public var dataRange:String = Settings.dataRange;
+			
+			//[Bindable] private var devicesData:AppXML = new AppXML();
+		
+			[Bindable] var selection:String;
+			[Bindable] var year:String;
+			[Bindable] var month:String;
+			[Bindable] var day:String;
+		    
+		    // variables 
+		    [Bindable] private var devicesData:XMLList;
+     		[Inspectable(defaultValue="http://localhost:3000/bin/pie-test-data.xml")] private var _dataUrl:String;
+     		[Inspectable(defaultValue="Title")] private var _title:String;
+     		[Inspectable(defaultValue="0")] private var _innerRadius:Number;
+		     
+		    public function set dataUrl (context:String):void 
+            {	
+				_dataUrl = context;
+            }
+            
+            public function get dataUrl():String 
+            {
+                return _dataUrl;
+            }  
+            
+            public function set title (context:String):void 
+            {	
+				_title = context;
+            }
+            
+            public function get title():String 
+            {
+                return _title;
+            }  
+            
+            public function set innerRadius (context:Number):void 
+            {	
+				_innerRadius = context;
+            }
+            
+            public function get innerRadius():Number 
+            {
+                return _innerRadius;
+            }  
+            // -------------------------------------------------------------
+            
+            private function dataReqHandler(event:ResultEvent):void {
+				devicesData = event.result.event;
+			}
+			
+			private function pieSeries_labelFunc(item:Object, field:String, index:Number, percentValue:Number):String {
+                return item.label + ": " + " (" + percentValue.toFixed(2) + "%)";
+            }
+		]]>
+	</mx:Script>
+	
+	<mx:HTTPService id="connReq" url= "{_dataUrl}" result="dataReqHandler(event);" resultFormat="e4x"/>
+	
+	<mx:Array id="labelPositionArr">
+        <mx:Object label="none" />
+        <mx:Object label="inside" />
+        <mx:Object label="insideWithCallout" />
+        <mx:Object label="callout" />
+        <mx:Object label="outside" />
+    </mx:Array>
+	<mx:VBox width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
+		<mx:PieChart id="myChart"  dataProvider="{devicesData}" showDataTips="true"  height="90%" width="100%" innerRadius="{_innerRadius}" >
+			<mx:series>
+		    	<mx:PieSeries field="amount" 
+		    				  nameField="label" 
+		    				  labelPosition="{comboBox.selectedItem.label}"
+		    				  labelFunction="pieSeries_labelFunc" >
+		    	<mx:itemRenderer>
+					<mx:Component>
+						<renderers:RollOverWedgeItemRenderer />
+					</mx:Component>
+				</mx:itemRenderer>
+				<mx:calloutStroke>
+                    <mx:Stroke color="gray"
+                            weight="2"
+                            caps="none" />
+                </mx:calloutStroke>
+		    	</mx:PieSeries>
+	        </mx:series>
+	     </mx:PieChart>
+	     <mx:HBox
+			width="100%"
+			horizontalAlign="right">
+			<mx:ComboBox id="comboBox"
+				dataProvider="{labelPositionArr}"/>
+		</mx:HBox>
+	     <!--<mx:Legend dataProvider="{myChart}"/>-->
+    </mx:VBox>
+</mx:Canvas>

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:head="com.mxplay.analytics.layout.*"
+	xmlns:pom="com.mxplay.analytics.components.*" 
+	width="100%" height="100%" 
+	label="Location Overview"
+    creationComplete="creationCompleteHandler(event);"	>
+    <head:GlassHeaders headerTitle="LATEST [FIFTY] REQUESTS" />
+	<mx:Script>
+        <![CDATA[
+        	import com.mxplay.analytics.util.AppXML;
+        	import mx.collections.ArrayCollection;
+            import mx.effects.easing.Cubic;
+            import com.yahoo.maps.api.markers.SimpleMarker;
+            import mx.controls.Alert;
+            import mx.managers.CursorManager;
+            import mx.rpc.events.FaultEvent;
+            import mx.rpc.events.ResultEvent;
+            import com.yahoo.maps.api.overlays.CircleOverlay;
+            import mx.events.ResizeEvent;
+
+            import com.yahoo.maps.api.YahooMap;
+            import com.yahoo.maps.api.YahooMapEvent;
+            import com.yahoo.maps.api.core.location.Address;
+            import com.yahoo.maps.api.core.location.LatLon;
+            import com.yahoo.maps.api.utils.Distance;
+            import com.yahoo.maps.api.overlays.CircleOverlay;
+            import com.yahoo.maps.webservices.geocoder.GeocoderResult;
+            import com.yahoo.maps.webservices.geocoder.GeocoderResultSet;
+            import com.yahoo.maps.webservices.geocoder.events.GeocoderEvent;
+            import com.yahoo.maps.webservices.geocoder.Geocoder;
+            
+            private const CONTEXT_URL:String = Settings.SiteUrl;
+			
+            [Bindable] private var ipData:AppXML = new AppXML();
+            [Bindable] public var geoInfo:ArrayCollection = new ArrayCollection();
+            
+            [Bindable] public var dataRange:String = Settings.dataRange;
+            [Bindable] var selection:String;
+			[Bindable] var year:String;
+			[Bindable] var month:String;
+			[Bindable] var day:String;
+
+            
+            private var _yahooMap:YahooMap;
+            private var _geocoder:Geocoder;
+            private var _centerAddress:Address;
+            [Bindable]
+            private var _centerAddressStr:String= "";
+            private var isYahooMapAdded:Boolean = false;
+            
+            public function dataRangeHandler(range:Object):void {
+				dataRange = range.data;
+				dateChangeHandler(Settings.dateSel);
+		    }
+		    
+		    public function dateChangeHandler(date:Date):void {
+		    	if (date == null) {
+	            	date = Settings.dateSel;
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	            	if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            } else {
+	            	year = date.getFullYear().toString();
+	                month = (date.getMonth()+1).toString();
+	                day = date.getDate().toString();
+	                if (dataRange == "daily") {
+	                	selection = "Display Date: " + date.getFullYear().toString() +
+	                    	'/' + (date.getMonth()+1).toString() + '/' + date.getDate();
+	             	} else {
+	             		selection = "Display Month: " + Settings.displayedMonthLabel;
+	             		month = (parseInt(Settings.displayedMonth) + 1).toString();
+	             	}
+	            }
+                _yahooMap.markerManager.removeAllMarkers();
+	            geoInfo.removeAll();
+	            geoInfo.refresh();
+	            gc.refresh();
+	            doGeolocateIP();
+		    }
+            
+            public function creationCompleteHandler(event:Event):void{
+                //getIPHTTPService.send();
+                getIPLocation.url = CONTEXT_URL + "/geoip";
+                addYahooMap();
+            }
+            
+            private function addYahooMap():void{
+                if (isYahooMapAdded){
+                    return;
+                } else {
+                    isYahooMapAdded = true;
+                }
+                var appid:String = "u9geeRbV34FZbJMpJ2ty8sf0tW7B22eRq8BTDZmBMAJ_ScrOGmpkA.ycAybDxxA-";        
+                
+                _yahooMap = new YahooMap();
+                _yahooMap.addEventListener(YahooMapEvent.MAP_INITIALIZE, handleMapInitialize);
+                _yahooMap.init(appid, panelTab.width-30, panelTab.height-150);
+                _yahooMap.addPanControl();
+                _yahooMap.addScaleBar();
+                _yahooMap.addZoomWidget();
+                _yahooMap.addTypeWidget();
+                _yahooMap.addCrosshair();
+                
+                 // create new Geocoder and listen for its GEOCODER_SUCCESS event.
+                _geocoder = new Geocoder();
+                _geocoder.addEventListener(GeocoderEvent.GEOCODER_SUCCESS, handleGeocodeSuccess);
+                
+                mapContainer.addEventListener(ResizeEvent.RESIZE, handleContainerResize);
+
+
+
+                mapContainer.addChild(_yahooMap);
+
+                        
+            }
+            
+            private function handleMapInitialize(e:Event):void{
+            	//Center of US: 38,-97
+                var lyonLatLon:LatLon = new LatLon(34,-58);
+                centerYahooMap(lyonLatLon, 15);
+            }
+            
+            private function handleContainerResize(event:ResizeEvent):void{
+                // set the width and height of the map based on the container UIComponent size.
+                _yahooMap.setSize( mapContainer.width, mapContainer.height);
+            }
+
+            
+            private function centerYahooMap(_latLon:LatLon, zoom:Number = 10):void{
+                
+                _yahooMap.centerLatLon = _latLon;
+                
+                _yahooMap.zoomLevel = zoom;
+                
+                _geocoder.reverseGeocode(_yahooMap.centerLatLon);                
+            }
+
+            
+            private function handleGeocodeSuccess(event:GeocoderEvent):void {
+                // get the GeocoderResultSet containing each result returned by the geocoder.
+                var resultSet:GeocoderResultSet = event.data as GeocoderResultSet;
+                
+                // grab the first (highest-quality) result.
+                var firstResult:GeocoderResult = resultSet.firstResult;
+                
+                // get the full address string of the result.
+                _centerAddressStr = firstResult.getLineAddress();
+            }
+            
+                
+            private function doGeolocateIP():void{
+                //var ipToSend:String = ipAddress.text;
+                //getIPLocation.send({ip:ipToSend});
+                ipData.addEventListener(Event.COMPLETE, updateIp);
+                
+                if (dataRange == "daily") {
+		        	ipData.loadData(CONTEXT_URL + "/ips/"+ Settings.dataConnection + "/" + year + "/" + month + "/" + day + ".xml");
+            	} else {
+            		ipData.loadData(CONTEXT_URL + "/ips/" + Settings.dataConnection + "/monthly/" + year + "/" + month + ".xml");
+            	}
+            }
+            
+            private function updateIp(event:Event):void {
+            	for each (var prop:XML in ipData.appXML.ip) {
+            		getIPLocation.send({ip:prop.server_ip});
+            	}
+            }
+           
+            private function resultHandler(event:ResultEvent):void{
+                var resultString:String = String (event.result);
+                //ipAddress.text = resultString;
+            }
+           
+            private function faultHandler(event:FaultEvent):void{
+                var faultstring:String = event.fault.faultString;
+                //Alert.show(faultstring);
+                CursorManager.removeBusyCursor();
+            }
+            
+            /*
+            XML = 
+            <root>
+              <host_name/>
+              <host_ip/>
+			  <country_code/>
+			  <country_code3/>
+			  <country_name/>
+			  <region/>
+			  <state/>
+			  <city/>
+			  <zip/>
+			  <latitude/>
+			  <longitude/>
+			  <dma_code/>
+			  <area_code/>
+			</root>
+			*/
+            private function geoLocIPResult(event:ResultEvent):void{
+                var result:XML = XML(event.result);      
+                if (result.country_name != "" && result.country_name != "Congo") {
+	                var obj:Object = {  "Country":result.country_name,
+	                					"Region":result.region,
+	                					"State":result.state,
+	                					"City":result.city,
+	                					"Zip":result.zip,
+	                					"lat":result.latitude,
+	                					"lon":result.longitude					
+					}
+        			geoInfo.addItem(obj);
+    			}
+                gc.source = geoInfo;
+		    	gc.refresh();
+                
+                var latlon:LatLon = new LatLon(Number(result.latitude), Number(result.longitude));
+                //centerYahooMap(latlon, 5);
+                
+                // marker
+                if (latlon.toString() != "0,0") {
+	                var marker:SimpleMarker = new SimpleMarker();
+	                marker.latlon = latlon;
+	                _yahooMap.markerManager.addMarker(marker);
+                }
+            }
+            
+			// Event handler for the ADG control change event.
+            public function locChanged(event:Event):void {
+                var lat:Number = AdvancedDataGrid(event.target).selectedItem.lat;
+                var lon:Number = AdvancedDataGrid(event.target).selectedItem.lon;
+				if (lat && lon) {
+                	var latlon:LatLon = new LatLon(lat, lon);
+                	centerYahooMap(latlon, 5);
+    			}
+            }
+
+        ]]>
+    </mx:Script>
+	    <mx:HTTPService id="getIPHTTPService" resultFormat="text" method="POST" 
+	        result="resultHandler(event)" fault="faultHandler(event)" showBusyCursor="true"
+	        url="http://www.flex-tutorial.fr/wp-content/uploads/GeolocationByIp/returnIPScript.php"/>
+	    
+	    <!-- Backup URL: http://www.flex-tutorial.fr/wp-content/uploads/GeolocationByIp/sample_city.php -->    
+	    <mx:HTTPService id="getIPLocation" resultFormat="e4x" method="POST"
+	        result="geoLocIPResult(event)" fault="faultHandler(event)" showBusyCursor="true"
+	        >
+	    </mx:HTTPService>
+	
+	<mx:Panel id="panelTab" paddingLeft="5" width="100%" height="100%">
+	    <mx:Box id="hiddenElements" width="100%" height="100%" paddingTop="10" horizontalAlign="center" >
+	    	<mx:VDividedBox width="100%" height="100%">
+	        	<mx:UIComponent id="mapContainer" width="100%" height="100%"/>
+	        	<mx:AdvancedDataGrid id="myADG" width="100%" height="100" color="0x323232" change="locChanged(event)" initialize="gc.refresh();">        
+		            <mx:dataProvider>
+		                <mx:GroupingCollection id="gc">
+		                    <mx:grouping>
+		                        <mx:Grouping>
+		                            <mx:GroupingField name="Country"/>
+		                            <mx:GroupingField name="State"/>
+		                        </mx:Grouping>
+		                    </mx:grouping>
+		                </mx:GroupingCollection>
+		            </mx:dataProvider>        
+		            <mx:columns>
+		                <mx:AdvancedDataGridColumn width="150" dataField="Country" headerText="Country"/>
+		                <mx:AdvancedDataGridColumn dataField="State" headerText="State" />
+		                <mx:AdvancedDataGridColumn dataField="Region" headerText="Region"/>
+		                <mx:AdvancedDataGridColumn dataField="City" headerText="City"/>
+		                <mx:AdvancedDataGridColumn dataField="Zip" headerText="Zip"/>
+		            </mx:columns>
+		       </mx:AdvancedDataGrid>
+	    	</mx:VDividedBox>
+	    </mx:Box>
+	</mx:Panel>
+</mx:Canvas>

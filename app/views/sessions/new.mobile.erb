@@ -1,0 +1,20 @@
+<% content_for :head do %>
+  <title>SmithMicro Analytics (Login) - Mobile</title>
+<% end %>
+<div id="panel">
+<div class="gt">Please Log In: </div>
+<% form_tag '/session.mobile' do -%>
+<b><label for="login">Username</label></b>
+<%= text_field_tag 'login',nil , :class => 'i' %>
+<br/>
+<b><label for="password">Password</label></b>
+<%= password_field_tag 'password', nil, :class => 'i' %>
+<br/>
+<!-- Uncomment this if you want this functionality
+<p><label for="remember_me">Remember me:</label>
+<%= check_box_tag 'remember_me' %></p>
+-->
+
+<p><%= submit_tag 'Log in', :class => 'b' %></p>
+<% end -%>
+</div>

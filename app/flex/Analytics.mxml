@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application
+    xmlns:mx="http://www.adobe.com/2006/mxml"
+    xmlns:pom="com.mxplay.analytics.components.*"
+    layout="vertical"
+    horizontalAlign="center"
+    verticalAlign="top"
+    paddingLeft="0"
+    paddingRight="0"
+    paddingTop="0"
+    paddingBottom="0"
+    width="100%"
+    height="100%">
+    <mx:Style source="com/mxplay/analytics/assets/main.css"/>
+    <mx:Script>
+    	<![CDATA[
+    		import mx.utils.URLUtil;
+    		import com.mxplay.analytics.components.DebugPanel;
+    		import com.mxplay.analytics.events.AccountCreateEvent;
+    		import com.mxplay.analytics.events.LoginEvent;
+    		import com.mxplay.analytics.util.DebugMessage;
+    		import mx.controls.Alert;
+    	
+    		[Bindable]
+    		private var _user : XML
+    		
+    		public static function debug(str:String):void {
+    			application.debugPanel.addMessage(new DebugMessage(str));
+    		}
+    		
+    		private function handleAccountCreate(e:AccountCreateEvent):void {
+    			login(e.user);
+    		}
+    		
+    		private function handleLogin(e:LoginEvent):void {
+    			//Alert.show(mx.utils.URLUtil.getServerNameWithPort(Application.application.url),"URL");
+    			Settings.SiteUrl = "http://" + mx.utils.URLUtil.getServerNameWithPort(Application.application.url);
+    			login(e.user);
+    		}
+    		
+    		private function login(user:XML):void {
+    			_user = user;
+    			//debug("user = " + user);
+    			mainStack.selectedChild = mainBox;
+    		}
+    	]]>
+    </mx:Script>
+    <mx:VDividedBox width="100%" height="100%">
+	    <mx:ViewStack id="mainStack" width="100%" height="100%">
+	    	<pom:SplashBox id="splashBox" styleName="glassPanel" accountCreate="handleAccountCreate(event)" login="handleLogin(event)" />
+	    	<pom:MainBox id="mainBox" styleName="glassPanel" user="{_user}" />
+	    </mx:ViewStack>
+	    <pom:DebugPanel id="debugPanel" width="100%" height="0%" />
+    </mx:VDividedBox>
+</mx:Application>

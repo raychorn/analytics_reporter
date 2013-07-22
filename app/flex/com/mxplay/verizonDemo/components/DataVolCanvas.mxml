@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+			xmlns:vzd="com.mxplay.verizonDemo.components.*">
+	<mx:HDividedBox styleName="glassPods" width="100%" height="100%" paddingTop="10" paddingBottom="10" paddingLeft="50" >
+		<mx:VDividedBox width="60%" height="100%">
+			<!--<vzd:SubPopWWANBar />-->
+			<vzd:StackedBarChart dataUrl="http://localhost:3000/bin/bar-test-data.xml"
+									 colSeries1="[subPoP, G3, 3G]" 
+									 colSeries2="[subPoP, G2, 2G]"/>			
+		</mx:VDividedBox>
+		<mx:VDividedBox width="40%" height="100%">
+			<mx:HDividedBox width="100%" height="40%">
+				<!--<vzd:DataUsagePie />-->
+				<vzd:PieChart dataUrl="http://localhost:3000/bin/pie-test-data.xml" 
+							  title="Data Usage by OS (%)"
+							  innerRadius="0.2" />
+			</mx:HDividedBox>	
+			<mx:HDividedBox width="100%" height="60%">
+				<!--<vzd:DataUsageWwanPie />-->
+				<vzd:PieChart dataUrl="http://localhost:3000/bin/pie-test-data1.xml" 
+							  title="Data Usage by WWAN Device (%)"
+							  innerRadius="0" />
+			</mx:HDividedBox>
+		</mx:VDividedBox>
+	</mx:HDividedBox>
+</mx:Canvas>

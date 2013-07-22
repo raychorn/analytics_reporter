@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" width="100%" height="100%" verticalScrollPolicy="off">
+	
+	<mx:Script>
+		<![CDATA[
+			public function creationCompleteHandler(myChart:CartesianChart):void {
+				//var newMsg:TextField = myChart.getChildAt(myChart.numChildren-1) as TextField;
+				//newMsg.htmlText = "";
+			}
+		]]>
+	</mx:Script>
+	<mx:ApplicationControlBar height="5%" width="100%">
+		<mx:HBox width="100%" height="100%">
+			<mx:CheckBox id="cbEvent1" label="Launches"
+			click="modifyChart();" color="#0033CC"/>
+			<mx:CheckBox id="cbEvent2" label="Playbacks" 
+			click="modifyChart();" color="#FF0000"/>
+			<mx:CheckBox id="cbEvent3" label="CD Rips"
+			click="modifyChart();" color="#00FF00"/>
+			<mx:CheckBox id="cbEvent4" label="CD Burns"
+			click="modifyChart();" color="#FFFF00"/>
+			<mx:CheckBox id="cbEvent5" label="Downloads"
+			click="modifyChart();" color="#00FFFF"/>
+			<mx:CheckBox id="cbEvent6" label="Transfers" 
+			click="modifyChart();" color="#FF00FF"/>
+			<mx:CheckBox id="cbEvent7" label="Media Locker"
+			click="modifyChart();" color="#6c2b56"/>
+			<mx:CheckBox id="cbEvent8" label="Connections"
+			click="modifyChart();" color="#1f361c"/>
+			<mx:CheckBox id="cbEvent9" label="Slide Shows"
+			click="modifyChart();" color="#660066"/>
+			<mx:CheckBox id="cbEvent10" label="Zooms"
+			click="modifyChart();" color="#CC0033"/>
+		</mx:HBox>
+	</mx:ApplicationControlBar>
+	<mx:ViewStack id="vs" width="100%" height="100%">
+		<mx:Box icon="@Embed('com/mxplay/analytics/assets/icon_chart.png')" toolTip="View in Chart" hideEffect="Fade" showEffect="Fade">
+		<mx:HBox width="100%" height="100%">
+	    	<mx:CartesianChart id="bigChart"
+	    		creationComplete="creationCompleteHandler(this.bigChart)" 
+	    		width="100%" height="100%"
+	    		gutterLeft="50" gutterRight="50" gutterBottom="60" gutterTop="10"
+	    		showDataTips="true"
+	    		dataProvider="{mainData}" >
+	        
+		        <mx:horizontalAxis>
+		        	<mx:CategoryAxis categoryField="server_date" />
+		        </mx:horizontalAxis>
+		        
+		        <mx:horizontalAxisRenderer>
+		        	<mx:AxisRenderer placement="{horizontalAxisPlacement}" />
+		        </mx:horizontalAxisRenderer>
+		        
+		    <!--    <mx:verticalAxis>
+		        	<mx:LinearAxis maximum="{maxVAxis}" />
+		        </mx:verticalAxis> -->
+		        
+		        <mx:verticalAxisRenderer>
+		        	<mx:AxisRenderer placement="{verticalAxisPlacement}"  />
+		        </mx:verticalAxisRenderer>
+		        
+		        <!-- <mx:series> -->
+		        <!--	<mx:LineSeries name="server_count" yField="server_count" lineStroke="{lineStroke}" 
+		        		itemRenderer="mx.charts.renderers.CircleItemRenderer" /> -->
+		        <!--    <mx:AreaSeries name="server_count" yField="server_count" 
+		            	areaFill="{areaColor}"  areaStroke="{areaStroke}" /> -->
+		        <!-- </mx:series> -->
+		        
+		        <mx:annotationElements>
+		            <mx:Canvas width="100%" height="100%" 
+		            	buttonMode="true" mouseDown="setMouseDown(bigChart)" />
+		        </mx:annotationElements>
+		        
+		    </mx:CartesianChart>
+	    </mx:HBox>
+	    
+	    <mx:Spacer height="{gapBetweenCharts}" />
+	    
+	    <mx:VBox verticalGap="0" width="100%" verticalScrollPolicy="off" horizontalAlign="left" >
+	        
+	        <mx:CartesianChart id="smallChart" 
+	        	creationComplete="creationCompleteHandler(this.smallChart)"
+	        	width="100%" height="60"
+	        	dataProvider="{chartData}" 
+	        	showDataTips="true" >
+	            
+	            <mx:horizontalAxis>
+	            	<mx:CategoryAxis categoryField="server_date"/>
+	            </mx:horizontalAxis>
+	            
+	            <mx:horizontalAxisRenderer>
+	            	<mx:AxisRenderer visible="false" />
+	            </mx:horizontalAxisRenderer>
+	            
+	            <mx:verticalAxis>
+	            	<mx:LinearAxis />
+	            </mx:verticalAxis>
+	            
+	            <mx:verticalAxisRenderer>
+	            	<mx:AxisRenderer visible="false" />
+	            </mx:verticalAxisRenderer>
+	            
+	            <mx:series>
+	                <mx:AreaSeries name="server_count" yField="server_count" 
+	                	areaStroke="{areaStroke}" areaFill="{areaColor}" />
+	            </mx:series>
+	            
+	            <mx:annotationElements>
+	                <mx:HDividedBox id="overlayCanvas" width="100%" alpha="1" dividerAffordance="5" liveDragging="true" horizontalGap="10" verticalGap="0" horizontalScrollPolicy="off" 
+	                                dividerDrag="updateBoundariesFromDivider(event)" dividerSkin="{blankDividerClass}"
+	                                mouseOver="overlayCanvas.setStyle('dividerSkin', dividerClass);" mouseOut="overlayCanvas.setStyle('dividerSkin', blankDividerClass);">
+	                    <mx:Canvas id="leftBox" height="100%"
+	                               width="{(overlayCanvas.width / chartData.length) * leftBoundary}" 
+	                               backgroundAlpha="0.4" backgroundColor="#EEEEEE" borderThickness="1" borderColor="#999999" borderStyle="solid" />
+	                    <mx:Canvas id="visibleBox" width="100%" height="100%" buttonMode="true" mouseDown="setMouseDown(smallChart)" />
+	                    <mx:Canvas id="rightBox" height="100%" 
+	                               width="{(overlayCanvas.width / chartData.length) * (chartData.length - rightBoundary)}" 
+	                               backgroundAlpha="0.4" backgroundColor="#EEEEEE" borderThickness="1" borderColor="#999999" borderStyle="solid"/>
+	                </mx:HDividedBox>
+	            </mx:annotationElements>
+	            
+	        </mx:CartesianChart>
+	        
+	        <mx:Spacer height="-30" />
+	        
+	        <mx:HBox horizontalGap="0">
+	        	<mx:Spacer width="24" />
+	        	
+	        	<flexlib:HSlider id="slider" width="{overlayCanvas.width + 12}"  height="25"
+	                        trackHighlightSkin="flexlib.skins.SliderThumbHighlightSkin"
+	                        trackSkin="com.mxplay.analytics.util.EmptySkin"
+	                        allowTrackClick="true" allowThumbOverlap="false" 
+	                        liveDragging="true" change="updateBoundariesFromSlider()"
+	                        showDataTip="true" dataTipPlacement="bottom" dataTipOffset="3"
+	                        showTrackHighlight="true"
+	                        thumbCount="2" snapInterval="1"
+	                        values="{[leftBoundary, rightBoundary]}"
+	                        minimum="0" maximum="{chartData.length}"
+	                        />
+	        </mx:HBox>
+	                        
+	         <mx:Spacer height="{gapAtBottom}" />
+	    </mx:VBox>
+    </mx:Box>
+    <mx:Box icon="@Embed('com/mxplay/analytics/assets/icon_grid.png')" toolTip="View in Grid" hideEffect="Fade" showEffect="Fade">
+    	<mx:DataGrid dataProvider="{origData}" width="100%" height="100%" creationComplete=""
+            id="grid" toolTip="" backgroundAlpha=".4">
+            <mx:columns>
+                <mx:Array>
+                    <mx:DataGridColumn dataField="server_date" headerText="Date"
+                        />
+                    <mx:DataGridColumn dataField="server_event" headerText="Event"
+                        />
+                    <mx:DataGridColumn dataField="server_count" headerText="Unique Triggers"
+                        />
+                    <mx:DataGridColumn dataField="server_total" headerText="Total Triggers"
+                        />
+                </mx:Array>
+            </mx:columns>
+        </mx:DataGrid>
+    </mx:Box>
+    </mx:ViewStack>
+    
+    <mx:ControlBar>
+        <mx:ToggleButtonBar dataProvider="{vs}" id="toggle" toolTip=""/>
+        <mx:Legend id="legend" dataProvider="{bigChart}" direction="horizontal" />
+    </mx:ControlBar>
+    
+    <mx:Script>
+        <![CDATA[
+        	import mx.charts.effects.SeriesInterpolate;
+        	import mx.rpc.events.ResultEvent;
+        	import mx.rpc.http.HTTPService;
+            import mx.managers.SystemManager;
+            import mx.events.ResizeEvent;
+            import mx.graphics.Stroke;
+            import mx.graphics.SolidColor;
+            import mx.collections.ArrayCollection;
+            import mx.events.DividerEvent;
+            import mx.managers.SystemManager;
+            import mx.charts.renderers.*;
+            import mx.charts.series.LineSeries;
+            import mx.controls.Alert;
+            import com.mxplay.analytics.util.EmptySkin;
+            
+            [Embed(source="com/mxplay/analytics/assets/divider.png")] [Bindable] public var dividerClass:Class;
+            [Embed(source="com/mxplay/analytics/assets/blank.png")] [Bindable] public var blankDividerClass:Class;
+            
+            private const CONTEXT_URL:String = Settings.SiteUrl;
+            private var DATA_LENGTH:Number = 500;
+            private var LEFT_START:Number = 0;
+            private var RIGHT_START:Number = 250;
+            [Bindable] public var chartData:ArrayCollection;
+            [Bindable] public var mainData:ArrayCollection;
+            [Bindable] public var origData:ArrayCollection;
+            
+            //Defines Month/Day Data Ranges
+            [Bindable] public var dataRange:String = Settings.dataRange;
+            
+            [Bindable] private var leftBoundary:Number;
+            [Bindable] private var rightBoundary:Number;
+            
+            //Variable for Checking how many Checked Boxes are Currently Checked
+            [Bindable] private var checkedBoxes:int = 1;
+            
+            private var staticLeftBoundary:Number;
+            private var staticRightBoundary:Number;
+            
+            public var smallDrag:Boolean = false;
+            public var bigDrag:Boolean = false;
+            public var mouseXRef:Number;
+            
+            [Bindable]
+            public var maxVAxis:Number = 100;
+            
+            /* Some customizable colors for the ara fill and stroke. */
+            [Bindable]
+            public var areaColor:SolidColor = new SolidColor(0x0033CC, 0.5);
+            
+            [Bindable]
+            public var areaStroke:Stroke = new Stroke(0x0033CC, 2);
+            
+            [Bindable]
+            public var lineStroke:Stroke = new Stroke(0x0033CC, 2);
+            
+            /* Two spacer heights, these are used to determine the layout of the
+             * small chart versus the big chart.
+             */
+            [Bindable] 
+            public var gapBetweenCharts:Number = 0;
+            
+            [Bindable] 
+            public var gapAtBottom:Number = 0;
+            
+            /* Some customizable variables to affect the layout of the axes */
+            [Bindable]
+            public var horizontalAxisPlacement:String = "none";
+            
+            [Bindable]
+            public var verticalAxisPlacement:String = "none";
+            
+            public function dataRangeHandler(range:Object):void {
+            	origData = null;
+            	dataRange = range.data;
+				modifyChart();
+            }
+            
+            public function clearChart():void {
+            	var tmp:Array = new Array()
+            	if (bigChart != null)
+            		bigChart.series = tmp;
+            }
+            
+            public function isEmpty():Boolean {
+            	var flag:Boolean;
+            	if (bigChart == null)
+            		flag = true;
+            	else if (bigChart.series.length == 0)
+            		flag = true;
+            	else
+            		flag = false;
+            	return flag;
+            }
+            
+            private function getEventName():String {
+            	var name:String;
+            	var event:int = chartData.getItemAt(1).server_event;
+            	switch (event) {
+            		case 1:
+            			cbEvent1.selected = true;
+            			name = "Launches";
+            		break;
+            		case 2:
+            			cbEvent2.selected = true;
+            			name = "Playbacks";
+            		break;
+            		case 3:
+            			cbEvent3.selected = true;
+            			name = "CD Rips";
+            		break;
+            		case 4:
+            			cbEvent4.selected = true;		
+            			name = "CD Burns";
+            		break;
+            		case 5:
+            			cbEvent5.selected = true;
+            			name = "Downloads";
+            		break;
+            		case 6:
+            			cbEvent6.selected = true;
+            			name = "Transfers";
+            		break;
+            		case 7:
+            			cbEvent7.selected = true;
+            			name = "Media Locker";
+            		break;
+            		case 8:
+            			cbEvent8.selected = true;
+            			name = "Connections";
+            		break;
+            		case 9:
+            			cbEvent9.selected = true;
+            			name = "Slide Shows";
+            		break;
+            		case 10:
+            			cbEvent10.selected = true;
+            			name = "Zooms";
+            		break;
+            		default:
+            			name = "Incorrect Event";
+            		break;
+            	}
+            	return name;
+            }
+            
+            public function enableCheckbox ():void {
+				cbEvent1.enabled = true;
+				cbEvent2.enabled = true;
+				cbEvent3.enabled = true;
+				cbEvent4.enabled = true;
+				cbEvent5.enabled = true;
+				cbEvent6.enabled = true;
+				cbEvent7.enabled = true;
+				cbEvent8.enabled = true;
+				cbEvent9.enabled = true;
+				cbEvent10.enabled = true;
+			}
+			
+			public function disableCheckbox ():void {
+				cbEvent1.enabled = false;
+				cbEvent2.enabled = false;
+				cbEvent3.enabled = false;
+				cbEvent4.enabled = false;
+				cbEvent5.enabled = false;
+				cbEvent6.enabled = false;
+				cbEvent7.enabled = false;
+				cbEvent8.enabled = false;
+				cbEvent9.enabled = false;
+				cbEvent10.enabled = false;
+			}
+            
+            private function modifyChart():void {
+				//chart1.addEventListener(Event.CHANGE, disableCheckbox);
+				var num:int = 0;
+				disableCheckbox();
+				clearChart();
+				if(cbEvent1.selected == true){   
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/1.xml");
+				}
+				if(cbEvent2.selected == true){  
+					num++; 
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/2.xml");
+				}
+				if(cbEvent3.selected == true){   
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/3.xml");
+				}
+				if(cbEvent4.selected == true){
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/4.xml");
+				}
+				if(cbEvent5.selected == true){
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/5.xml");
+				}
+				if(cbEvent6.selected == true){
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/6.xml");
+				}
+				if(cbEvent7.selected == true){
+					//Currently no Data for Event7, Don't Count
+					//num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/7.xml");
+				}
+				if(cbEvent8.selected == true){   
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/8.xml");
+				}
+				if(cbEvent9.selected == true){   
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/9.xml");
+				}
+				if(cbEvent10.selected == true){   
+					num++;
+					loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/10.xml");
+				}
+				checkedBoxes = num;
+				if (num == 0)
+					enableCheckbox();
+			}
+            
+            public function loadData(url:String):void {
+            	var req:HTTPService = new HTTPService();
+            	req.resultFormat = "text";
+            	
+            	req.url = url;
+            	
+            	req.addEventListener(ResultEvent.RESULT, parseData);
+            	
+            	req.send();
+            }
+            
+            public function loadUrl(url:String):void {
+            	var req:HTTPService = new HTTPService();          	
+            	req.url = url;
+            	req.addEventListener(ResultEvent.RESULT, parseXMLData);
+            	req.send();
+            	dispatchEvent( new Event(Event.CHANGE, true));
+            }
+                        
+            /**
+             * We're loading a CSV file, so all our data points are separated by newlines.
+             * We split the result, the loop over and create the dataprovider for the chart.
+             * The y field is the data point value, the x field is the index of the data point.
+             */
+            private function parseData(event:ResultEvent):void {
+            	var data:String = event.result as String;
+            	
+            	var array:Array = data.split("\r");
+            	
+            	var ac:ArrayCollection = new ArrayCollection();
+            	
+            	for(var i:int=0; i<array.length; i++) {
+            		ac.addItem({server_date:i, server_count:array[i]});	
+            	}
+            	
+            	chartData = ac;
+            	mainData = new ArrayCollection(chartData.source);
+            	leftBoundary = LEFT_START;
+                rightBoundary = RIGHT_START;
+                updateBoundariesFromSlider();
+            }
+            
+            /**
+            * x = server_date
+            * y = server_count
+            */
+            private function parseXMLData(event:ResultEvent):void {          	
+            	chartData = event.result.events.event;
+       			mainData = new ArrayCollection(chartData.source);
+       			if (!origData)
+       				origData = new ArrayCollection(chartData.source);
+            	var ls:LineSeries; 
+				ls = new LineSeries(); 
+				ls.xField = "server_date"; 
+				ls.yField = "server_count";
+				ls.displayName = getEventName();
+				ls.setStyle("lineStroke", new Stroke(Math.random()*15077215+15000, 1, 1.0));
+				//ls.setStyle("itemRenderer", new ClassFactory(mx.charts.renderers.CircleItemRenderer));
+				ls.dataProvider = chartData; 
+				var tmp:Array = bigChart.series; 
+				tmp.push(ls); 
+				bigChart.series = tmp; 
+				bigChart.invalidateSeriesStyles(); 
+            	leftBoundary = chartData.length - 15;
+                rightBoundary = chartData.length;
+                updateBoundariesFromSlider();
+                if (bigChart.series.length >= checkedBoxes)
+                	enableCheckbox();
+                else
+                	disableCheckbox();
+                dispatchEvent( new Event(Event.COMPLETE, true));
+            }
+            
+            private function updateBoundariesFromSlider():void
+            {
+                leftBoundary = slider.values[0];
+                rightBoundary = slider.values[1];
+                updateMainData();
+            }
+            
+            private function updateBoundariesFromDivider(event:DividerEvent):void
+            {
+                leftBoundary = Math.abs(HDividedBox(event.target).getChildAt(0).width / (event.target.width / chartData.length));
+                rightBoundary = Math.abs(chartData.length - (HDividedBox(event.target).getChildAt(2).width / (event.target.width / chartData.length)));
+                updateMainData();
+            }
+            
+            private function updateMainData():void
+            {
+                mainData.source = chartData.source.slice(leftBoundary, rightBoundary)
+            }
+
+            private function setMouseDown(theChart:CartesianChart):void
+            {
+                mouseXRef = this.mouseX;
+                staticLeftBoundary = leftBoundary;
+                staticRightBoundary = rightBoundary;
+                if(theChart == bigChart) bigDrag = true;
+                if(theChart == smallChart) smallDrag = true;
+                this.systemManager.addEventListener(MouseEvent.MOUSE_MOVE, moveChart);
+                this.systemManager.addEventListener(MouseEvent.MOUSE_UP, stopDragging);
+            }
+            
+            private function stopDragging(event:MouseEvent):void
+            {
+                smallDrag = false;
+                bigDrag = false;
+                this.systemManager.removeEventListener(MouseEvent.MOUSE_MOVE, moveChart);
+                this.systemManager.removeEventListener(MouseEvent.MOUSE_UP, stopDragging);
+            }
+            
+            private function moveChart(event:MouseEvent):void
+            {
+                if(bigDrag)
+                {
+                    leftBoundary = staticLeftBoundary + (mouseXRef - this.mouseX) / (bigChart.width / mainData.length);
+                    rightBoundary = staticRightBoundary + (mouseXRef - this.mouseX) / (bigChart.width / mainData.length);
+                }
+                else if(smallDrag)
+                {
+                    leftBoundary = staticLeftBoundary - (mouseXRef - this.mouseX) / (smallChart.width / chartData.length);
+                    rightBoundary = staticRightBoundary - (mouseXRef - this.mouseX) / (smallChart.width / chartData.length);
+                }
+            }
+        ]]>
+    </mx:Script>
+
+</mx:VBox>

@@ -1,0 +1,62 @@
+<% content_for :head do %>
+  <title>SmithMicro Analytics (Events) - Mobile</title>
+<% end %>
+<div style="margin: 12px 0px;">Analytics information:</div>
+<span style="margin: 1px 3px 5px;"><%= link_to 'Day', "/events/events.mobile" %> | <%= link_to 'Week', "/events/events.mobile" %> | <%= link_to 'Month', "/events/events.mobile" %></span>
+<div id = "panel">
+  <div class="gt" style="font-weight:bold;">Display Date: <%= link_to '<', "/events/#{(@current_time-86400).year}/#{(@current_time-86400).month}/#{(@current_time-86400).day}.mobile" %> <%= @show_time %> <%= link_to '>', "/events/#{(@current_time+86400).year}/#{(@current_time+86400).month}/#{(@current_time+86400).day}.mobile" %></div>
+  <div class="gt">Usage Information: </div>
+  <div>
+  	<% if @events.blank? %>
+  		<span>No Events for this Date.</span>
+  	<% else %>
+  		<% event1 = 0 %>
+  		<% event2 = 0 %>
+	  	<% @events.each do |e| %>
+	  		<% if e.server_event == 1 %>
+	  			<% event1 = event1 + e.server_count %>
+	  		<% elsif e.server_event == 2 %>
+	  			<% event2 = event2 + e.server_count %>
+	  		<% end %>
+		<% end %>
+		<% event1_1 = 0 %>
+	  	<% @events_1.each do |e| %>
+	  		<% if e.server_event == 1 %>
+	  			<% event1_1 = event1_1 + e.server_count %>
+	  		<% end %>
+		<% end %>
+		<% event1_2 = 0 %>
+	  	<% @events_2.each do |e| %>
+	  		<% if e.server_event == 1 %>
+	  			<% event1_2 = event1_2 + e.server_count %>
+	  		<% end %>
+		<% end %>
+		
+		<span>Unique Users: </span>
+  		<span style="font-weight:bold"><%= event1 %> </span>
+		<br/>
+		<span>Playbacks: </span>
+  		<span style="font-weight:bold"><%= event2 %> </span>
+  		<br/>
+	<% end %>
+  </div>	
+</div>
+<% if @events.blank? == false %>
+<div style="margin: 12px 0px;">Graph Overview (Unique Users %):</div>
+<img src="http://chart.apis.google.com/chart?
+	chs=250x100
+	&amp;chd=t:0,<%= (((event1_1-event1_2)/event1_1.to_f)*100).round %>,<%= (((event1-event1_1)/event1.to_f)*100).round %>
+	&amp;cht=lc
+	&amp;chxt=x,y
+	&amp;chco=C0D7B8,D4D6B8
+	&amp;chm=B,D4D6B8,0,0,0
+	&amp;chds=-100,100
+	&amp;chl=<%= (@current_time-86400*2).utc.strftime("%Y-%m-%d") %>|<%= (@current_time-86400).utc.strftime("%Y-%m-%d") %>|<%= (@current_time).utc.strftime("%Y-%m-%d") %>" 
+	&amp;chtt=Unique Users
+	alt="Events" />
+	<br/>
+	Gross Margin: 0%,<%= (((event1_1-event1_2)/event1_1.to_f)*100).round %>%,<%= (((event1-event1_1)/event1.to_f)*100).round %>%
+	<br/>
+	Data Values:<%= event1_2 %>,<%= event1_1 %>,<%= event1 %>
+<% end %>
+</div>	

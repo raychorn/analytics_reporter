@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Displays a form and DataGrid using a ViewStack.
+ The form and DataGrid use the same dataProvider and provide
+ alternative ways to navigate through a set of data.
+-->
+<PodContentBase
+	xmlns="com.mxplay.analytics.dashboard.view.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.events.ListEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			
+			import com.mxplay.analytics.events.DateChangeEvent;
+			
+			[Bindable]
+			private var dataFields:ArrayCollection;
+			
+			[Bindable]
+			private var labelFields:ArrayCollection;
+			[Bindable]
+			private var dataProvider:ArrayCollection;
+			
+			[Bindable]
+			private var selectedViewIndex:Number = 0;
+			
+			[Bindable]
+			private var _selectedIndex:Number = -1;
+			
+			[Bindable]
+			private var addingRecord:Boolean;
+			
+			private var dateFormatter:DateFormatter;
+			
+			private const NEW:String = "New";
+			private const ADD:String = "Add";
+			
+			override protected function onResultHttpService(e:ResultEvent):void
+			{
+				//DateChange Event Listener 
+				mx.core.Application.application.addEventListener(DateChangeEvent.DATECHANGE, dateChangeHandler);
+				
+				dateFormatter = new DateFormatter();
+				dateFormatter.formatString = "MM/DD/YY";
+				
+				var a:Array = xmlListToObjectArray(e.result.record);
+				dataProvider = new ArrayCollection(a);
+				
+				// Get the values from properties XML.
+				a = properties.@dataFields.toString().split(",");
+				dataFields = new ArrayCollection(a);
+				//Alert.show(dataFields.getItemAt(1).toString(), "Error");
+				var labels:Array = properties.@labels.toString().split(",");
+				labelFields = new ArrayCollection(labels);
+				
+				selectedIndex = 0;
+				if (properties.@selectedViewIndex.toString() != null &&
+					Number(properties.@selectedViewIndex) <= (viewStack.numChildren - 1)) // Make sure the index is in range.
+				{
+					//Alert.show(properties.@selectedViewIndex.toString(), "errpr");
+					selectedViewIndex = Number(properties.@selectedViewIndex);
+				}
+				// change or add columns dynamically
+				changeDataGridColumn();
+				//addDataGridColumn(dataFields.getItemAt(1).toString());
+
+			}
+			
+			public function dateChangeHandler(e:DateChangeEvent):void {
+				onDateChange(e.startdate, e.enddate);
+			}
+			
+			private function changeDataGridColumn():void {
+                //var cols:Array = dataGrid.columns;
+                var cols:Array = new Array();
+                var dgc:DataGridColumn;
+                
+                for(var i:int=0; i<dataFields.length; i++) {
+                	dgc = new DataGridColumn(dataFields.getItemAt(i).toString());
+                	dgc.headerText = labelFields.getItemAt(i).toString();
+                	cols.push(dgc);
+                }
+                dataGrid.columns = cols;
+            }
+            
+            private function addDataGridColumn(dataField:String):void {
+                var dgc:DataGridColumn = new DataGridColumn(dataField);
+                var cols:Array = dataGrid.columns;
+                cols.push(dgc);
+                dataGrid.columns = cols;
+            }
+
+			private function set selectedIndex(n:Number):void
+			{
+				addingRecord = false;
+				
+				// Make sure we are within range of dataProvider.
+				if (n < 0)
+					n = dataProvider.length - 1;
+				else if (n > (dataProvider.length - 1))
+					n = 0;
+
+				var item:Object = dataProvider.getItemAt(n);
+				//field0Input.text = item[dataFields[0]];
+				//field1Input.selectedDate = item[dataFields[1]];
+				//field2Input.text = item[dataFields[2]];
+				
+				_selectedIndex = n;
+				
+				//indexInput.text = String(n + 1);
+			}
+			
+			private function get selectedIndex():Number
+			{
+				return _selectedIndex;
+			}
+									
+			private function formatDate(item:Object, column:DataGridColumn):String
+			{
+				return dateFormatter.format(item[column.dataField]);
+			}
+		]]>
+	</mx:Script>
+	<mx:ViewStack
+		id="viewStack"
+		selectedIndex="{selectedViewIndex}"
+		width="100%" height="100%">
+		<mx:Canvas>
+			<mx:DataGrid id="dataGrid"
+				width="100%" height="100%"
+				dataProvider="{dataProvider}"
+				selectedIndex="{_selectedIndex}"
+				itemClick="selectedIndex=DataGrid(event.currentTarget).selectedIndex;"
+				itemDoubleClick="selectedViewIndex=0;">
+				<!--<mx:columns> -->
+				
+				<!--	<mx:DataGridColumn
+						headerText="{labelFields.getItemAt(0)}"
+						dataField="{dataFields.getItemAt(0)}"/> -->
+				
+				<!--	<mx:DataGridColumn
+						rendererIsEditor="true"
+						headerText="{labelFields.getItemAt(1)}"
+						dataField="{dataFields.getItemAt(1)}"/>
+				-->
+				<!--	
+				labelFunction="formatDate"
+						
+				<mx:DataGridColumn
+						headerText="{labelFields.getItemAt(2)}"
+						dataField="{dataFields.getItemAt(2)}"/> -->
+				<!--</mx:columns> -->
+			</mx:DataGrid>
+		</mx:Canvas>
+	</mx:ViewStack>
+</PodContentBase>

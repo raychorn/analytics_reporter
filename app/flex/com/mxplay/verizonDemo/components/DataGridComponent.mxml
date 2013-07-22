@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" creationComplete="dataGridReq.send()">
+		<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+
+			
+			[Inspectable(defaultValue="This is a header")] private var _header:String;
+			[Inspectable(defaultValue="http://localhost:3000/bin/test-data1.xml")] private var _dataGridUrl:String;
+			[Inspectable(defaultValue="_colTexts1, _colTexts2, _colTexts3, _colTexts4")]private var _colTexts:Array;
+			[Inspectable(defaultValue="_cols1, _cols2, _cols3, _cols4")]private var _cols:Array;		
+				
+			public function set header (context:String):void 
+            {	
+				_header = context;
+            }
+            
+            public function get header():String 
+            {
+                return _header;
+            }           
+            
+            public function set dataGridUrl (context:String):void 
+            {	
+				_dataGridUrl = context;
+            }
+            
+            public function get dataGridUrl():String 
+            {
+                return _dataGridUrl;
+            }  
+            
+            public function set colTexts (context:Array):void 
+            {	
+				_colTexts = context;
+            }
+            
+            public function get colTexts():Array 
+            {
+                return _colTexts;
+            }       
+            
+            public function set cols (context:Array):void 
+            {	
+				_cols = context;
+            }
+            
+            public function get cols():Array 
+            {
+                return _cols;
+            }               
+           	
+	     	[Bindable] private var dataGridData:ArrayCollection;
+			
+			private function dataGridReqHandler(event:ResultEvent):void {
+				dataGridData = event.result.events.event;
+				//Alert.show(dataGridData.toString());
+				//dataGridReq.send();
+			}
+	
+		]]>
+	</mx:Script>
+	<mx:HTTPService id="dataGridReq" url= "{_dataGridUrl}" result="dataGridReqHandler(event);" resultFormat="object" fault="Alert.show(event.fault.faultString)"/>
+	
+	<mx:VDividedBox width="100%" height="100%" borderStyle="solid" borderColor="gray">
+		<mx:Box borderStyle="solid" borderColor="blue" width="100%" height="10%" paddingTop="10" horizontalAlign="center" verticalAlign="middle">
+			<!--<mx:Text fontSize="20" text="{_header}" />	-->
+			<mx:Text fontSize="15" text="{_header}"/>
+		</mx:Box>
+		<mx:Box width="100%" height="90%">
+			<mx:DataGrid id="dataGrid" dataProvider="{dataGridData}" width="100%" height="100%"> 
+					<mx:columns>
+						<mx:DataGridColumn headerText="{_colTexts[0]}" dataField="{_cols[0]}"/>
+						<mx:DataGridColumn headerText="{_colTexts[1]}" dataField="{_cols[1]}"/>
+						<mx:DataGridColumn headerText="{_colTexts[2]}" dataField="{_cols[2]}"/>
+						<mx:DataGridColumn headerText="{_colTexts[3]}" dataField="{_cols[3]}"/>
+					</mx:columns>
+			</mx:DataGrid>
+		</mx:Box>
+	</mx:VDividedBox>
+
+</mx:Canvas>

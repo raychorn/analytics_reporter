@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+			xmlns:vzd="com.mxplay.verizonDemo.components.*">
+		
+	<mx:HDividedBox styleName="glassPods" width="100%" height="100%" borderStyle="solid" paddingTop="20" paddingBottom="20">
+		<mx:VDividedBox width="50%" height="100%" verticalAlign="middle" horizontalAlign="center" verticalGap="30">
+			<mx:Canvas width="95%" height="45%">
+				<!--<vzd:SucConnWWANLine />-->	
+				<vzd:LineChartComponent dataGridUrl="http://localhost:3000/events/verizon/daily/1.xml" 
+										displayName="Successful Connections - WWAN"
+										xField="server_date"
+										yField="server_count"/>
+			</mx:Canvas>
+			<mx:Canvas width="95%" height="45%">
+				<!--<vzd:SubPopWWANBar /> -->
+				<vzd:StackedBarChart dataUrl="http://localhost:3000/bin/bar-test-data.xml"
+									 colSeries1="[subPoP, G3, 3G]" 
+									 colSeries2="[subPoP, G2, 2G]"/>		
+			</mx:Canvas>
+		</mx:VDividedBox>	
+		<mx:VDividedBox width="50%" height="100%" verticalAlign="top" horizontalAlign="left" paddingLeft="20" verticalGap="30">
+			<mx:Canvas width="95%" height="45%">
+				<!--<vzd:ConnDropWWANDataGrid />	-->
+				<vzd:DataGridComponent header="WWAN Connection Drops by Top 10 Devices" 
+									   dataGridUrl="http://localhost:3000/bin/test-data1.xml" 
+									   colTexts="[server_count, server_date, server_event, server_total]"
+									   cols="[server_count, server_date, server_event, server_total]"/> 
+			</mx:Canvas>
+			<mx:Canvas width="95%" height="45%">
+				<!--<vzd:SucConnWiFiLine />-->
+				<vzd:LineChartComponent dataGridUrl="http://localhost:3000/bin/com/mxplay/connectivity/components/revenue2.xml" 
+										displayName="Successful Connections - WiFi"
+										xField="month"
+										yField="value"/>
+				<!--<vzd:LineChartComponent dataGridUrl="http://localhost:3000/events/verizon/daily/2.xml" 
+										displayName="Successful Connections - WiFi"
+										xField="server_date"
+										yField="server_count"/>-->
+			</mx:Canvas>
+		</mx:VDividedBox>
+	</mx:HDividedBox>
+</mx:Canvas>

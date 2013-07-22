@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:pom="com.mxplay.analytics.components.*" 
+	width="100%" height="100%"
+	label="Dashboard" creationComplete="loadChart1();">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			import mx.charts.*;
+			import mx.controls.Text;
+			import mx.controls.Label;
+			import mx.graphics.Stroke;
+			import mx.events.ItemClickEvent;
+			
+			private const CONTEXT_URL:String = Settings.SiteUrl;
+			[Bindable] private var analytics:XML;
+			[Bindable] private var stats:ArrayCollection;
+			[Bindable] public var dataRangeLabel:String = "Day";
+			[Bindable] public var dataRange:String = "daily";
+			
+			private function loadChart1():void {
+				chart1.loadUrl(CONTEXT_URL + "/events/" + Settings.dataConnection + "/" + dataRange + "/1.xml");
+			}
+			
+			public function dataRangeHandler(range:Object):void {
+				dataRangeLabel = range.label;
+				dataRange = range.data;
+				if (chart1)
+					chart1.dataRangeHandler(range);
+				if (chart2.isEmpty() == false)
+					chart2.dataRangeHandler(range);
+				if (chart3.isEmpty() == false)
+					chart3.dataRangeHandler(range);
+				if (chart4.isEmpty() == false)
+					chart4.dataRangeHandler(range);
+				if (chart5.isEmpty() == false)
+					chart5.dataRangeHandler(range);
+				if (chart6.isEmpty() == false)
+					chart6.dataRangeHandler(range);
+				if (chart7.isEmpty() == false)
+					chart7.dataRangeHandler(range);
+				if (chart8.isEmpty() == false)
+					chart8.dataRangeHandler(range);
+				if (chart9.isEmpty() == false)
+					chart9.dataRangeHandler(range);
+				if (chart10.isEmpty() == false)
+					chart10.dataRangeHandler(range);
+			}
+			
+			private function clickToggleHandler(event:ItemClickEvent):void {
+                switch(String(event.index))
+                {
+                	case "0":
+                		if (chart1.isEmpty())
+                			chart1.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/1.xml");
+                		break;
+                	case "1":
+                		if (chart2.isEmpty())
+                			chart2.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/2.xml");
+                		break;
+            		case "2":
+            			if (chart3.isEmpty())
+                			chart3.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/3.xml");
+                		break;
+            		case "3":
+            			if (chart4.isEmpty())
+                			chart4.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/4.xml");
+                		break;
+            		case "4":
+            			if (chart5.isEmpty())
+                			chart5.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/5.xml");
+                		break;
+            		case "5":
+            			if (chart6.isEmpty())
+                			chart6.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/6.xml");
+                		break;
+            		case "6":
+            			if (chart7.isEmpty())
+                			chart7.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/7.xml");
+                		break;
+            		case "7":
+            			if (chart8.isEmpty())
+                			chart8.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/8.xml");
+                		break;
+            		case "8":
+            			if (chart9.isEmpty())
+                			chart9.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/9.xml");
+                		break;
+            		case "9":
+            			if (chart10.isEmpty())
+                			chart10.loadUrl(CONTEXT_URL + "/events/" + dataRange + "/10.xml");
+                		break;
+                }
+            }
+			
+			private function dataRequestResultHandler(event:ResultEvent):void {
+				stats = event.result.analytics.analytic;
+				//Analytics.debug("stats = " + stats);
+			}
+			
+				
+			public function creationCompleteHandler(myChart:ColumnChart):void {
+				var newMsg:TextField = myChart.getChildAt(myChart.numChildren-1) as TextField;
+				newMsg.htmlText = "";
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Script>
+		<![CDATA[
+			
+		]]>
+	</mx:Script>
+	
+	<mx:HTTPService id="analyticsIndex" url="{CONTEXT_URL}/analytics"
+    resultFormat="e4x"
+    result="analytics=event.result as XML"/>
+    
+    <mx:HTTPService id="dataRequest" url="{CONTEXT_URL}/analytics/by_date"
+    result="dataRequestResultHandler(event);"/>
+	
+	<mx:Panel status="Data by: {dataRangeLabel}" backgroundAlpha=".7" width="100%" height="100%">
+		<mx:ApplicationControlBar height="5%" width="100%">
+			<mx:ToggleButtonBar id="eventMenu" width="100%" dataProvider="{vs}" itemClick="clickToggleHandler(event);"/>
+		</mx:ApplicationControlBar>	
+		<mx:VDividedBox id="verticalDivideBox" width="100%" height="100%">
+			<mx:Box id="graphBox" width="100%" height="100%">
+			<mx:Canvas width="100%" height="100%">
+			<mx:ViewStack id="vs" width="100%" height="100%">
+			 <pom:ChartComponent id="chart1" label="Launches" width="100%" height="100%"
+			 	horizontalAxisPlacement="bottom" 
+			 	gapBetweenCharts="0"
+			 	gapAtBottom="0"
+			 	maxVAxis="30" />
+			
+			<pom:ChartComponent id="chart2" label="Playbacks" width="100%" height="100%" 
+				areaColor="{new SolidColor(0xFF0000, 0.5)}" areaStroke="{new Stroke(0xFF0000, 2)}"
+				lineStroke="{new Stroke(0xFF0000, 2)}"
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+			
+			<pom:ChartComponent id="chart3" label="CD Rips" width="100%" height="100%"
+				areaColor="{new SolidColor(0x00FF00, 0.5)}" areaStroke="{new Stroke(0x00FF00, 2)}"
+				lineStroke="{new Stroke(0x00FF00, 2)}"
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+			<pom:ChartComponent id="chart4" label="CD Burns" width="100%" height="100%" 
+			 	areaColor="{new SolidColor(0xFFFF00, 0.5)}" areaStroke="{new Stroke(0xFFFF00, 2)}"
+				lineStroke="{new Stroke(0xFFFF00, 2)}"
+			 	gapBetweenCharts="0"
+			 	gapAtBottom="0"
+			 	maxVAxis="30" />
+			
+			<pom:ChartComponent id="chart5" label="Downloads" width="100%" height="100%"
+				areaColor="{new SolidColor(0x00FFFF, 0.5)}" areaStroke="{new Stroke(0x00FFFF, 2)}"
+				lineStroke="{new Stroke(0x00FFFF, 2)}"
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+			
+			<pom:ChartComponent id="chart6" label="Transfers" width="100%" height="100%"
+				areaColor="{new SolidColor(0xFF00FF, 0.5)}" areaStroke="{new Stroke(0xFF00FF, 2)}"
+				lineStroke="{new Stroke(0xFF00FF, 2)}"
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+				
+			<pom:ChartComponent id="chart7" label="Media Locker" width="100%" height="100%"
+				areaColor="{new SolidColor(0x6c2b56, 0.5)}" areaStroke="{new Stroke(0x6c2b56, 2)}"
+				lineStroke="{new Stroke(0x6c2b56, 2)}" 
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+				
+			<pom:ChartComponent id="chart8" label="Connections" width="100%" height="100%"
+				areaColor="{new SolidColor(0x1f361c, 0.5)}" areaStroke="{new Stroke(0x1f361c, 2)}"
+				lineStroke="{new Stroke(0x1f361c, 2)}"
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+			<pom:ChartComponent id="chart9" label="Slide Shows" width="100%" height="100%"
+				areaColor="{new SolidColor(0x660066, 0.5)}" areaStroke="{new Stroke(0x660066, 2)}"
+				lineStroke="{new Stroke(0x660066, 2)}"
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+			<pom:ChartComponent id="chart10" label="Zooms" width="100%" height="100%"
+				areaColor="{new SolidColor(0xCC0033, 0.5)}" areaStroke="{new Stroke(0xCC0033, 2)}"
+				lineStroke="{new Stroke(0xCC0033, 2)}"
+				gapBetweenCharts="0"
+				gapAtBottom="0"  
+				maxVAxis="30" />
+			</mx:ViewStack>
+			</mx:Canvas>
+		<!--	<mx:ColumnChart id="countChart" dataProvider="{stats}" showDataTips="true" width="1000" creationComplete="creationCompleteHandler(this.countChart), dataRequest.send()" >
+				<mx:horizontalAxis>
+					<mx:CategoryAxis categoryField="date" />
+				</mx:horizontalAxis>
+				<mx:series>
+					<mx:ColumnSeries 
+						yField="server_event_1"
+						displayName="Event 1"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_2"
+						displayName="Event 2"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_3"
+						displayName="Event 3"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_4"
+						displayName="Event 4"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_5"
+						displayName="Event 5"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_6"
+						displayName="Event 6"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_7"
+						displayName="Event 7"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_8"
+						displayName="Event 8"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_9"
+						displayName="Event 9"
+						/>
+					<mx:ColumnSeries 
+						yField="server_event_10"
+						displayName="Event 10"
+						/>				
+				</mx:series>
+			</mx:ColumnChart> 
+			<mx:Legend dataProvider="{countChart}" /> -->
+			</mx:Box>
+		</mx:VDividedBox>
+	</mx:Panel>
+	
+</mx:Canvas>

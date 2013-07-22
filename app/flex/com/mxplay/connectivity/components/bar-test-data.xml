@@ -1,0 +1,42 @@
+<records type="array">
+	<record>
+		<subPoP>0-25 MB</subPoP>
+		<G3>70</G3>
+		<G2>30</G2>
+	</record>
+	<record>
+		<subPoP>26-50 MB</subPoP>
+		<G3>40</G3>
+		<G2>20</G2>
+	</record>
+	<record>
+		<subPoP>51-75 MB</subPoP>
+		<G3>50</G3>
+		<G2>30</G2>
+	</record>
+	<record>
+		<subPoP>76-150 MB</subPoP>
+		<G3>50</G3>
+		<G2>30</G2>
+	</record>
+	<record>
+		<subPoP>151-300 MB</subPoP>
+		<G3>40</G3>
+		<G2>20</G2>
+	</record>
+	<record>
+		<subPoP>301-500 MB</subPoP>
+		<G3>5</G3>
+		<G2>6</G2>
+	</record>
+	<record>
+		<subPoP>501-999 MB</subPoP>
+		<G3>3</G3>
+		<G2>4</G2>
+	</record>
+	<record>
+		<subPoP>1-3 GB</subPoP>
+		<G3>1</G3>
+		<G2>2</G2>
+	</record>	
+</records>

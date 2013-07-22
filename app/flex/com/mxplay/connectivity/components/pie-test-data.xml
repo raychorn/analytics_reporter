@@ -1,0 +1,18 @@
+ <records type="array">
+	<record>
+		<region>Windows XP</region>
+		<value>20</value>
+	</record>
+ 	<record>
+		<region>Windows Vista</region>
+		<value>65</value>
+	</record>
+	<record>
+		<region>Windows 7</region>
+		<value>12</value>
+	</record>
+	<record>
+		<region>Mac</region>
+		<value>10.5</value>
+	</record>
+</records>

@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PodContentBase
+	xmlns="com.mxplay.analytics.dashboard.view.*"
+	xmlns:vzd="com.mxplay.verizonDemo.components.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.StateChangeEvent;
+			import mx.controls.CheckBox;
+			import mx.charts.series.ColumnSet;
+			import mx.charts.series.ColumnSeries;
+			import mx.graphics.Stroke;
+            import mx.graphics.SolidColor;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.http.HTTPService;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.charts.series.LineSeries;
+			import mx.events.ListEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.events.DividerEvent;
+			import mx.controls.Alert;
+			import qs.charts.renderers.RollOverBoxItemRenderer;
+			
+			[Embed(source="com/mxplay/analytics/assets/divider.png")] [Bindable] public var dividerClass:Class;
+            [Embed(source="com/mxplay/analytics/assets/blank.png")] [Bindable] public var blankDividerClass:Class;
+			
+			[Bindable] public var chartData:ArrayCollection;
+			[Bindable] public var mainData:ArrayCollection;
+			[Bindable] public var origData:ArrayCollection;
+			
+			[Bindable]
+			private var dataFields:ArrayCollection;
+			
+			[Bindable]
+			private var labelFields:ArrayCollection;
+			[Bindable]
+			private var dataProvider:ArrayCollection;
+			
+			[Bindable]
+			private var selectedViewIndex:Number = 0;
+			
+			[Bindable]
+			private var _selectedIndex:Number = -1;
+			
+			[Bindable]
+			private var addingRecord:Boolean;
+			
+			/* Graph Mouse Boundaries */
+			[Bindable] private var leftBoundary:Number;
+            [Bindable] private var rightBoundary:Number;
+            private var staticLeftBoundary:Number;
+            private var staticRightBoundary:Number;
+			public var smallDrag:Boolean = false;
+            public var bigDrag:Boolean = false;
+            public var mouseXRef:Number;
+            
+            [Bindable]
+            public var maxVAxis:Number = 100;
+			
+			/* Some customizable colors for the ara fill and stroke. */
+            [Bindable]
+            public var areaColor:SolidColor = new SolidColor(0x0033CC, 0.5);
+            [Bindable]
+            public var areaStroke:Stroke = new Stroke(0x0033CC, 2);
+            [Bindable]
+            public var lineStroke:Stroke = new Stroke(0x0033CC, 2);
+            
+            /* Two spacer heights, these are used to determine the layout of the
+             * small chart versus the big chart.
+             */
+            [Bindable] 
+            public var gapBetweenCharts:Number = 0;
+            [Bindable] 
+            public var gapAtBottom:Number = 0;
+            
+            /* Some customizable variables to affect the layout of the axes */
+            [Bindable]
+            public var horizontalAxisPlacement:String = "none";
+            [Bindable]
+            public var verticalAxisPlacement:String = "none";
+			
+			// for checkedBoxChart
+			[Bindable] private var checkBoxInfo:Object = new Object();
+			//[Bindable] private var checkBoxes:ArrayCollection = new ArrayCollection();
+			[Bindable] private var checkBoxLabelFields:ArrayCollection;
+			[Bindable] private var dataUrlFields:ArrayCollection;
+			[Bindable] private var dataUrl1:String;
+			//Variable for Checking how many Checked Boxes are Currently Checked
+            [Bindable] private var checkedBoxes:int = 1;
+            //Colors for linegraphs and checkboxes
+            private var colorNum:int = 0;
+			private var colorArray:Array =  new Array("0xFF0000", "0x0000FF", "0x00FF00", "0xFF00FF", "0xFF0000");
+			//-------------------------------------------------------------
+			private var dateFormatter:DateFormatter;
+			
+			private const NEW:String = "New";
+			private const ADD:String = "Add";
+			
+			override protected function onResultHttpService(e:ResultEvent):void
+			{
+				//dateFormatter = new DateFormatter();
+				//dateFormatter.formatString = "MM/DD/YY";
+				VTT.debug("Cartesian: onResult Called");
+				//Send the ResultEvent to ParseXMLData
+				parseXMLData(e);
+				var a:Array = xmlListToObjectArray(e.result.record);
+				dataProvider = new ArrayCollection(a);
+				//Alert.show(dataProvider[0].toString(), "Error2");
+				
+				// Get the values from properties XML.
+				a = properties.@dataFields.toString().split(",");
+				dataFields = new ArrayCollection(a);
+				//Alert.show(dataFields.getItemAt(1).toString(), "Error");
+				var labels:Array = properties.@labels.toString().split(",");
+				labelFields = new ArrayCollection(labels);
+				// for checkedBoxLine
+				var checkBoxLabels:Array = properties.@checkBoxLabels.toString().split(",");
+				checkBoxLabelFields = new ArrayCollection(checkBoxLabels);
+				var dataUrls:Array = properties.@dataUrls.toString().split(",");
+				dataUrlFields = new ArrayCollection(dataUrls);
+				// Create Checkboxes on CheckBoxControlBar
+				createCheckboxes(checkBoxLabelFields,dataUrlFields);
+				
+				//chkBox.initLabelChart();
+				//---------------------------------------------------------------------------
+				
+				//selectedIndex = 0;
+				if (properties.@selectedViewIndex.toString() != null &&
+					Number(properties.@selectedViewIndex) <= (viewStack.numChildren - 1)) // Make sure the index is in range.
+				{
+					//Alert.show(properties.@selectedViewIndex.toString(), "errpr");
+					selectedViewIndex = Number(properties.@selectedViewIndex);
+				}
+			}
+			
+			public function loadUrl(url:String):void {
+            	/*var req:HTTPService = new HTTPService();          	
+            	req.url = url;
+            	req.addEventListener(ResultEvent.RESULT, parseXMLData);
+            	req.send();*/
+            	// Load the data source.
+				var httpService:HTTPService = new HTTPService();
+				httpService.url = url;
+				httpService.resultFormat = "e4x";
+				httpService.addEventListener(FaultEvent.FAULT, onFaultHttpService);
+				httpService.addEventListener(ResultEvent.RESULT, parseXMLData);
+				httpService.send();
+            	dispatchEvent( new Event(Event.CHANGE, true));
+            }
+            
+			override protected function parseXMLData(event:ResultEvent):void {    
+				//VTT.debug("Parse Result XML Data");
+				var a:Array = xmlListToObjectArray(event.result.record);
+				//VTT.debug("\tData: " + a.toString());
+				chartData = new ArrayCollection(a);      	
+       			mainData = new ArrayCollection(chartData.source);
+       			if (!origData)
+       				origData = new ArrayCollection(chartData.source);
+            	var ls:LineSeries; 
+				ls = new LineSeries(); 
+				ls.xField = "server_date"; 
+				ls.yField = "view_count";
+				ls.displayName = getEventName();
+				//ls.setStyle("lineStroke", new Stroke(colorArray[colorNum], 1, 3.0));
+				ls.setStyle("lineStroke", new Stroke(Math.random()*15077215+15000, 1, 1.0));
+				ls.setStyle("itemRenderer", new ClassFactory(qs.charts.renderers.RollOverBoxItemRenderer));
+				//ls.setStyle("itemRenderer", new ClassFactory(mx.charts.renderers.CircleItemRenderer));
+				ls.dataProvider = chartData; 
+				var tmp:Array = bigChart.series; 
+				tmp.push(ls); 
+				bigChart.series = tmp; 
+				bigChart.invalidateSeriesStyles(); 
+            	leftBoundary = chartData.length - 15;
+                rightBoundary = chartData.length;
+                updateBoundariesFromSlider();
+                /*if (bigChart.series.length >= checkedBoxes)
+                	enableCheckbox();
+                else
+                	disableCheckbox();*/
+                dispatchEvent( new Event(Event.COMPLETE, true));
+            }
+			
+			private function getEventName():String {
+            	var name:String;
+            	return name;
+            }
+            
+            private function createCheckboxes(labels:ArrayCollection, sources:ArrayCollection):void {
+            	for (var i:int = 0; i < labels.length; i++) {
+					var label:Object = labels.getItemAt(i);
+					var source:Object;
+					if (i < sources.length) {
+						source = sources.getItemAt(i);
+					}
+					//Add to checkBoxInfo (Hash Map to access when clicked)
+					checkBoxInfo[label] = source;
+					//Checkbox DisplayObject
+					var checkBox:CheckBox = new CheckBox();
+					checkBox.label = label.toString();
+					checkBox.addEventListener(MouseEvent.CLICK,checkBoxClicked);
+					checkBoxControlBar.addChild(checkBox);
+				}
+            	//checkBoxControlBar.addChild();
+            }
+            
+            private function checkBoxClicked(e:Event):void {
+            	// Clear Chart
+            	var num:int = 0;
+            	clearChart();
+            	// Traverse through checkbox children
+            	var checkBoxes:Array = checkBoxControlBar.getChildren();
+            	for (var i:int = 0; i < checkBoxes.length; i++) {
+            		VTT.debug("Children[" + i.toString() + "]: " + checkBoxes[i].label); 
+            		if (checkBoxes[i].selected == true) {
+            			num++;
+            			loadUrl(Settings.SiteUrl + checkBoxInfo[checkBoxes[i].label.toString()]);
+            		}
+            	}
+            	checkedBoxes = num;
+				//if (num == 0)
+				//	enableCheckbox();
+            	VTT.debug("CheckBox: " + Settings.SiteUrl + checkBoxInfo[e.currentTarget.label.toString()]);
+            	//loadUrl(Settings.SiteUrl + checkBoxInfo[e.currentTarget.label.toString()]);
+            }
+            
+            public function clearChart():void {
+            	var tmp:Array = new Array()
+            	if (bigChart != null)
+            		bigChart.series = tmp;
+            }
+            
+            private function modifyChart():void {
+
+            }
+			
+			private function updateMainData():void
+            {
+                mainData.source = chartData.source.slice(leftBoundary, rightBoundary)
+            }
+			
+			private function setMouseDown(theChart:CartesianChart):void
+            {
+                mouseXRef = this.mouseX;
+                staticLeftBoundary = leftBoundary;
+                staticRightBoundary = rightBoundary;
+                if(theChart == bigChart) bigDrag = true;
+                if(theChart == smallChart) smallDrag = true;
+                this.systemManager.addEventListener(MouseEvent.MOUSE_MOVE, moveChart);
+                this.systemManager.addEventListener(MouseEvent.MOUSE_UP, stopDragging);
+            }
+            
+            private function moveChart(event:MouseEvent):void
+            {
+                if(bigDrag)
+                {
+                    leftBoundary = staticLeftBoundary + (mouseXRef - this.mouseX) / (bigChart.width / mainData.length);
+                    rightBoundary = staticRightBoundary + (mouseXRef - this.mouseX) / (bigChart.width / mainData.length);
+                }
+                else if(smallDrag)
+                {
+                    leftBoundary = staticLeftBoundary - (mouseXRef - this.mouseX) / (smallChart.width / chartData.length);
+                    rightBoundary = staticRightBoundary - (mouseXRef - this.mouseX) / (smallChart.width / chartData.length);
+                }
+            }
+            
+            private function stopDragging(event:MouseEvent):void
+            {
+                smallDrag = false;
+                bigDrag = false;
+                this.systemManager.removeEventListener(MouseEvent.MOUSE_MOVE, moveChart);
+                this.systemManager.removeEventListener(MouseEvent.MOUSE_UP, stopDragging);
+            }
+			
+			private function updateBoundariesFromSlider():void
+            {
+                leftBoundary = slider.values[0];
+                rightBoundary = slider.values[1];
+                updateMainData();
+            }
+            
+            private function updateBoundariesFromDivider(event:DividerEvent):void
+            {
+                leftBoundary = Math.abs(HDividedBox(event.target).getChildAt(0).width / (event.target.width / chartData.length));
+                rightBoundary = Math.abs(chartData.length - (HDividedBox(event.target).getChildAt(2).width / (event.target.width / chartData.length)));
+                updateMainData();
+            }
+		]]>
+	</mx:Script>
+	<mx:Script>
+		<![CDATA[
+			public function creationCompleteHandler(myChart:CartesianChart):void {
+				//var newMsg:TextField = myChart.getChildAt(myChart.numChildren-1) as TextField;
+				//newMsg.htmlText = "";
+			}
+		]]>
+	</mx:Script>
+	<mx:ApplicationControlBar height="5%" width="100%">
+		<mx:HBox id="checkBoxControlBar" width="100%" height="100%" />
+	</mx:ApplicationControlBar>
+	<mx:ViewStack
+		id="viewStack"
+		selectedIndex="{selectedViewIndex}"
+		width="100%" height="100%">
+		<mx:Canvas>
+		<mx:VBox width="100%" height="100%">
+			<mx:HBox width="100%" height="100%">
+		    	<mx:CartesianChart id="bigChart"
+		    		creationComplete="creationCompleteHandler(this.bigChart)" 
+		    		width="100%" height="100%"
+		    		gutterLeft="50" gutterRight="50" gutterBottom="60" gutterTop="10"
+		    		showDataTips="true"
+		    		dataProvider="{mainData}" >
+		        
+			        <mx:horizontalAxis>
+			        	<mx:CategoryAxis categoryField="server_date" />
+			        </mx:horizontalAxis>
+			        
+			        <mx:horizontalAxisRenderer>
+			        	<mx:AxisRenderer placement="{horizontalAxisPlacement}" />
+			        </mx:horizontalAxisRenderer>
+			        
+			    <!--    <mx:verticalAxis>
+			        	<mx:LinearAxis maximum="{maxVAxis}" />
+			        </mx:verticalAxis> -->
+			        
+			        <mx:verticalAxisRenderer>
+			        	<mx:AxisRenderer placement="{verticalAxisPlacement}"  />
+			        </mx:verticalAxisRenderer>
+			        
+			        <!-- <mx:series> -->
+			        <!--	<mx:LineSeries name="view_count" yField="server_count" lineStroke="{lineStroke}" 
+			        		itemRenderer="mx.charts.renderers.CircleItemRenderer" /> -->
+			        <!--    <mx:AreaSeries name="server_count" yField="server_count" 
+			            	areaFill="{areaColor}"  areaStroke="{areaStroke}" /> -->
+			        <!-- </mx:series> -->
+			        
+			        <mx:annotationElements>
+			            <mx:Canvas width="100%" height="100%" 
+			            	buttonMode="true" mouseDown="setMouseDown(bigChart)" />
+			        </mx:annotationElements>
+			        
+			    </mx:CartesianChart>
+		    </mx:HBox>
+		    
+		    <mx:Spacer height="{gapBetweenCharts}" />
+		    
+		    <mx:VBox verticalGap="0" width="100%" verticalScrollPolicy="off" horizontalAlign="left" >
+		        
+		        <mx:CartesianChart id="smallChart" 
+		        	creationComplete="creationCompleteHandler(this.smallChart)"
+		        	width="100%" height="60"
+		        	dataProvider="{chartData}" 
+		        	showDataTips="true" >
+		            
+		            <mx:horizontalAxis>
+		            	<mx:CategoryAxis categoryField="server_date"/>
+		            </mx:horizontalAxis>
+		            
+		            <mx:horizontalAxisRenderer>
+		            	<mx:AxisRenderer visible="false" />
+		            </mx:horizontalAxisRenderer>
+		            
+		            <mx:verticalAxis>
+		            	<mx:LinearAxis />
+		            </mx:verticalAxis>
+		            
+		            <mx:verticalAxisRenderer>
+		            	<mx:AxisRenderer visible="false" />
+		            </mx:verticalAxisRenderer>
+		            
+		            <mx:series>
+		                <mx:AreaSeries name="view_count" yField="view_count" 
+		                	areaStroke="{areaStroke}" areaFill="{areaColor}" />
+		            </mx:series>
+		            
+		            <mx:annotationElements>
+		                <mx:HDividedBox id="overlayCanvas" width="100%" alpha="1" dividerAffordance="5" liveDragging="true" horizontalGap="10" verticalGap="0" horizontalScrollPolicy="off" 
+		                                dividerDrag="updateBoundariesFromDivider(event)" dividerSkin="{blankDividerClass}"
+		                                mouseOver="overlayCanvas.setStyle('dividerSkin', dividerClass);" mouseOut="overlayCanvas.setStyle('dividerSkin', blankDividerClass);">
+		                    <mx:Canvas id="leftBox" height="100%"
+		                               width="{(overlayCanvas.width / chartData.length) * leftBoundary}" 
+		                               backgroundAlpha="0.4" backgroundColor="#EEEEEE" borderThickness="1" borderColor="#999999" borderStyle="solid" />
+		                    <mx:Canvas id="visibleBox" width="100%" height="100%" buttonMode="true" mouseDown="setMouseDown(smallChart)" />
+		                    <mx:Canvas id="rightBox" height="100%" 
+		                               width="{(overlayCanvas.width / chartData.length) * (chartData.length - rightBoundary)}" 
+		                               backgroundAlpha="0.4" backgroundColor="#EEEEEE" borderThickness="1" borderColor="#999999" borderStyle="solid"/>
+		                </mx:HDividedBox>
+		            </mx:annotationElements>
+		            
+		        </mx:CartesianChart>
+		        
+		        <mx:Spacer height="-30" />
+		        
+		        <mx:HBox horizontalGap="0" width="100%">
+		        	<mx:Spacer width="96" />
+		        	<flexlib:HSlider id="slider" width="{overlayCanvas.width - 60}"  height="25"
+		                        trackHighlightSkin="flexlib.skins.SliderThumbHighlightSkin"
+		                        trackSkin="com.mxplay.analytics.util.EmptySkin"
+		                        allowTrackClick="true" allowThumbOverlap="false" 
+		                        liveDragging="true" change="updateBoundariesFromSlider()"
+		                        showDataTip="true" dataTipPlacement="bottom" dataTipOffset="3"
+		                        showTrackHighlight="true"
+		                        thumbCount="2" snapInterval="1"
+		                        values="{[leftBoundary, rightBoundary]}"
+		                        minimum="0" maximum="{chartData.length}"
+		                        />
+		        </mx:HBox>
+		                        
+		         <mx:Spacer height="{gapAtBottom}" />
+		    </mx:VBox>
+		</mx:VBox>
+		</mx:Canvas>
+	</mx:ViewStack>
+</PodContentBase>

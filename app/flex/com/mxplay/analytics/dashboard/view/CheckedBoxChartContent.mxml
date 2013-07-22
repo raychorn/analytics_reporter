@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Displays a form and DataGrid using a ViewStack.
+ The form and DataGrid use the same dataProvider and provide
+ alternative ways to navigate through a set of data.
+-->
+<PodContentBase
+	xmlns="com.mxplay.analytics.dashboard.view.*"
+	xmlns:vzd="com.mxplay.verizonDemo.components.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import mx.charts.series.ColumnSet;
+			import mx.charts.series.ColumnSeries;
+			import mx.collections.ArrayCollection;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.events.ListEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			
+			import com.mxplay.analytics.events.DateChangeEvent;
+			
+			[Bindable]
+			private var dataFields:ArrayCollection;
+			
+			[Bindable]
+			private var labelFields:ArrayCollection;
+			[Bindable]
+			private var dataProvider:ArrayCollection;
+			
+			[Bindable]
+			private var selectedViewIndex:Number = 0;
+			
+			[Bindable]
+			private var _selectedIndex:Number = -1;
+			
+			[Bindable]
+			private var addingRecord:Boolean;
+			
+			// for checkedBoxChart
+			[Bindable] private var checkBoxLabelFields:ArrayCollection;
+			[Bindable] private var dataUrlFields:ArrayCollection;
+			[Bindable] private var dataUrl1:String;
+			//-------------------------------------------------------------
+			private var dateFormatter:DateFormatter;
+			
+			private const NEW:String = "New";
+			private const ADD:String = "Add";
+			
+			override protected function onResultHttpService(e:ResultEvent):void
+			{
+				//dateFormatter = new DateFormatter();
+				//dateFormatter.formatString = "MM/DD/YY";
+				//DateChange Event Listener 
+				mx.core.Application.application.addEventListener(DateChangeEvent.DATECHANGE, dateChangeHandler);
+				
+				var a:Array = xmlListToObjectArray(e.result.record);
+				dataProvider = new ArrayCollection(a);
+				//Alert.show(dataProvider[0].toString(), "Error2");
+				
+				// Get the values from properties XML.
+				a = properties.@dataFields.toString().split(",");
+				dataFields = new ArrayCollection(a);
+				//Alert.show(dataFields.getItemAt(1).toString(), "Error");
+				var labels:Array = properties.@labels.toString().split(",");
+				labelFields = new ArrayCollection(labels);
+				// for checkedBoxLine
+				var checkBoxLabels:Array = properties.@checkBoxLabels.toString().split(",");
+				checkBoxLabelFields = new ArrayCollection(checkBoxLabels);
+				//VTT.debug("CheckBoxLabels: " + checkBoxLabelFields.toString());
+				var dataUrls:Array = properties.@dataUrls.toString().split(",");
+				dataUrlFields = new ArrayCollection(dataUrls);
+				//Tmp: REmoved Luis.
+				chkBox.initLabelChart();
+				//---------------------------------------------------------------------------
+				
+				//selectedIndex = 0;
+				if (properties.@selectedViewIndex.toString() != null &&
+					Number(properties.@selectedViewIndex) <= (viewStack.numChildren - 1)) // Make sure the index is in range.
+				{
+					//Alert.show(properties.@selectedViewIndex.toString(), "errpr");
+					selectedViewIndex = Number(properties.@selectedViewIndex);
+				}
+			}
+			
+			public function dateChangeHandler(e:DateChangeEvent):void {
+				onDateChange(e.startdate, e.enddate);
+			}
+			
+			/*
+			private function set selectedIndex(n:Number):void
+			{
+				addingRecord = false;
+				
+				// Make sure we are within range of dataProvider.
+				if (n < 0)
+					n = dataProvider.length - 1;
+				else if (n > (dataProvider.length - 1))
+					n = 0;
+
+				var item:Object = dataProvider.getItemAt(n);
+				_selectedIndex = n;
+			}
+			
+			private function get selectedIndex():Number
+			{
+				return _selectedIndex;
+			}
+			*/
+									
+			private function formatDate(item:Object, column:DataGridColumn):String
+			{
+				return dateFormatter.format(item[column.dataField]);
+			}
+		]]>
+	</mx:Script>
+	<mx:ViewStack
+		id="viewStack"
+		selectedIndex="{selectedViewIndex}"
+		width="100%" height="100%">
+		<mx:Canvas>
+			<vzd:CheckedBoxLineChart id="chkBox" 
+									 label1="{checkBoxLabelFields[0]}"
+				 					 label2="{checkBoxLabelFields[1]}"
+									 label3="{checkBoxLabelFields[2]}"
+									 label4="{checkBoxLabelFields[3]}"
+									 dataUrl1="{dataUrlFields[0]}"
+									 dataUrl2="{dataUrlFields[1]}"
+									 dataUrl3="{dataUrlFields[2]}"
+									 dataUrl4="{dataUrlFields[3]}" />
+		</mx:Canvas>
+	</mx:ViewStack>
+</PodContentBase>

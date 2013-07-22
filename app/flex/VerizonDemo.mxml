@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application
+    xmlns:mx="http://www.adobe.com/2006/mxml"
+    xmlns:pom="com.mxplay.analytics.components.*"
+    xmlns:vzd="com.mxplay.verizonDemo.components.*"
+    layout="vertical"
+    horizontalAlign="center"
+    verticalAlign="top"
+    paddingLeft="0"
+    paddingRight="0"
+    paddingTop="0"
+    paddingBottom="0"
+    width="100%"
+    height="100%">
+    <mx:Style source="com/mxplay/verizonDemo/assets/verizonDemo.css"/>
+    <mx:Script>
+		<![CDATA[
+			private function buttonClick(titleStack:ViewStack, mainViewStack:ViewStack, titleBox:Box, contextCanvas:Canvas):void{
+				titleStack.selectedChild=titleBox;
+				mainViewStack.selectedChild=contextCanvas;
+			}	
+		]]>
+	</mx:Script>
+    <mx:VDividedBox width="80%" height="90%" horizontalAlign="center" verticalGap="0">
+    	 <mx:ViewStack id="titleStack" width="100%" height="10%">
+    	 	<mx:Box id="dashboardBox" width="100%" height="100%" horizontalAlign="center" verticalAlign="bottom">
+	    		<mx:Label id="dashboardLabel" text="Dashboard View" textAlign="center" fontFamily="Arial" fontSize="50" fontWeight="bold" />
+	    	</mx:Box>
+	    	<mx:Box id="connectionBox" width="100%" height="100%" horizontalAlign="center" verticalAlign="bottom">
+	    		<mx:Label id="connectionLabel" text="Connection Reports View" />
+	    	</mx:Box>
+	    	<mx:Box id="dataVolBox" width="100%" height="100%" horizontalAlign="center" verticalAlign="bottom">
+	    		<mx:Label id="dataVolLabel" text="Data Volume Reports View" />
+	    	</mx:Box>
+	    	<mx:Box id="appUsageBox" width="100%" height="100%" horizontalAlign="center" verticalAlign="bottom">
+	    		<mx:Label id="appUsageLabel" text="Application Usage Reports View" />
+	    	</mx:Box>
+	    	<mx:Box id="serLevelBox" width="100%" height="100%" horizontalAlign="center" verticalAlign="bottom">
+	    		<mx:Label id="serLevelLabel" text="Service Lavels by Location Reports View" />
+	    	</mx:Box>	    	    	
+	    </mx:ViewStack>
+    	 <mx:HBox width="100%" height="10%" borderStyle="solid" verticalAlign="middle" paddingLeft="10" paddingRight="10" horizontalGap="10">
+			<mx:Button id="dashboardButton" label="Dashboard" width="20%" height="80%" click="buttonClick(titleStack, mainViewStack, dashboardBox, dashboardCanvas)" />
+		    <mx:Button id="connectionButton" label="Connection Reports" width="20%" height="80%" click="buttonClick(titleStack, mainViewStack, connectionBox, connectionCanvas)" />
+		    <mx:Button id="dataVolButton" label="Data Volume Reports" width="20%" height="80%" click="buttonClick(titleStack, mainViewStack, dataVolBox, dataVolCanvas)" />
+		    <mx:Button id="appUsageButton" label="Application Usage Reports" width="20%" height="80%" click="buttonClick(titleStack, mainViewStack, appUsageBox, appUsageCanvas)" />
+		    <mx:Button id="serLevelButton" label="Service Levels by Location" width="20%" height="80%" click="buttonClick(titleStack, mainViewStack, serLevelBox, serLevelCanvas)" />
+		</mx:HBox>
+    	 <mx:ViewStack id="mainViewStack" borderStyle="solid" width="100%" height="90%">
+    	 	<mx:Canvas id="dashboardCanvas" label="dashboard" >
+            	<vzd:DashboardCanvas id="myDashboardCanvas" width="100%" height="100%" />
+            </mx:Canvas>
+            <mx:Canvas id="connectionCanvas" label="connectionCanvas">
+                <vzd:ConnectionCanvas id="myConnectionCanvas" width="100%" height="100%" />
+            </mx:Canvas>
+            <mx:Canvas id="dataVolCanvas" label="dataVolCanvas">
+                <vzd:DataVolCanvas id="myDataVolCanvas" width="100%" height="100%" />
+            </mx:Canvas>
+            <mx:Canvas id="appUsageCanvas" label="appUsageCanvas">
+                <vzd:AppUsageCanvas id="myAppUsageCanvas" width="100%" height="100%" />
+            </mx:Canvas>
+            <mx:Canvas id="serLevelCanvas" label="serLevelCanvas">
+                <vzd:SerLevelCanvas id="mySerLevelCanvas" width="100%" height="100%" />
+            </mx:Canvas>
+         </mx:ViewStack>    
+    </mx:VDividedBox>
+</mx:Application>
